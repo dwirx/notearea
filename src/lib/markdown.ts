@@ -1,16 +1,44 @@
 import hljs from 'highlight.js';
 
-// Simple markdown parser for preview
+// Simple markdown parser for preview with HTML support
 export function parseMarkdown(text: string): string {
   if (!text) return '';
 
   let html = text;
 
-  // Escape HTML
+  // Store HTML blocks to preserve them
+  const htmlBlocks: string[] = [];
+  const htmlBlockPlaceholder = '___HTML_BLOCK_PLACEHOLDER___';
+  
+  // Preserve HTML blocks (block-level HTML tags)
+  html = html.replace(/(<(?:p|div|table|thead|tbody|tr|td|th|img|a|center|br|hr)[^>]*>[\s\S]*?<\/(?:p|div|table|thead|tbody|tr|td|th|a|center)>|<(?:img|br|hr)[^>]*\/?>)/gi, (match) => {
+    htmlBlocks.push(match);
+    return `${htmlBlockPlaceholder}${htmlBlocks.length - 1}${htmlBlockPlaceholder}`;
+  });
+
+  // Store inline HTML tags
+  const inlineHtml: string[] = [];
+  const inlineHtmlPlaceholder = '___INLINE_HTML___';
+  html = html.replace(/<[^>]+>/g, (match) => {
+    inlineHtml.push(match);
+    return `${inlineHtmlPlaceholder}${inlineHtml.length - 1}${inlineHtmlPlaceholder}`;
+  });
+
+  // Escape remaining HTML entities
   html = html
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+
+  // Restore inline HTML
+  html = html.replace(new RegExp(`${inlineHtmlPlaceholder}(\\d+)${inlineHtmlPlaceholder}`, 'g'), (_, index) => {
+    return inlineHtml[parseInt(index)];
+  });
+
+  // Restore HTML blocks
+  html = html.replace(new RegExp(`${htmlBlockPlaceholder}(\\d+)${htmlBlockPlaceholder}`, 'g'), (_, index) => {
+    return htmlBlocks[parseInt(index)];
+  });
 
   // Code blocks with syntax highlighting (must be before other replacements)
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
@@ -25,8 +53,8 @@ export function parseMarkdown(text: string): string {
     }
   });
 
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Inline code with special styling
+  html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
 
   // Headers (H1-H6)
   html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');

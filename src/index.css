@@ -371,19 +371,36 @@
     font-weight: 700;
   }
 
-  /* Inline code */
-  .markdown-preview code {
-    @apply px-2.5 py-1 rounded-lg text-sm;
-    background: hsl(var(--muted) / 0.8);
+  /* Inline code - Default style */
+  .markdown-preview code:not(pre code) {
+    @apply px-2 py-0.5 rounded-md text-sm;
+    background: hsl(var(--muted) / 0.7);
     font-family: 'SF Mono', Monaco, 'Consolas', 'Fira Code', monospace;
-    color: hsl(var(--primary));
+    color: hsl(var(--foreground));
     font-weight: 500;
     border: 1px solid hsl(var(--border) / 0.5);
   }
 
+  /* Inline code - Badge style (for flags like --help) */
+  .markdown-preview code.inline-code {
+    @apply px-2.5 py-1 rounded-md text-sm font-semibold;
+    background: hsl(var(--primary) / 0.15);
+    font-family: 'SF Mono', Monaco, 'Consolas', 'Fira Code', monospace;
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--primary) / 0.3);
+    white-space: nowrap;
+  }
+
   .dark .markdown-preview code:not(pre code) {
-    background: hsl(30 12% 18%);
-    border-color: hsl(30 10% 25%);
+    background: hsl(30 12% 16%);
+    border-color: hsl(30 10% 22%);
+    color: hsl(40 15% 85%);
+  }
+
+  .dark .markdown-preview code.inline-code {
+    background: hsl(35 80% 50% / 0.15);
+    color: hsl(35 100% 60%);
+    border-color: hsl(35 80% 50% / 0.3);
   }
 
   /* Code blocks - Light Mode */
