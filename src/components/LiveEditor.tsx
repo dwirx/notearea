@@ -660,13 +660,13 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="w-full min-h-screen min-h-[100dvh] safe-top bg-editor-bg"
+      className="w-full min-h-screen min-h-[100dvh] safe-top bg-editor-bg flex flex-col"
     >
-      <div ref={containerRef} className="live-editor-container relative w-full max-w-[96%] xs:max-w-[92%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
+      <div ref={containerRef} className="live-editor-container relative flex-1 w-full max-w-[100%] xs:max-w-[96%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
         {/* Highlight overlay */}
         <div
           ref={highlightRef}
-          className="live-highlight pointer-events-none whitespace-pre-wrap break-words px-4 py-6 xs:px-6 xs:py-8 sm:px-8 sm:py-10 md:px-12 md:py-14 lg:px-16 lg:py-16 xl:px-20 xl:py-20 2xl:px-24 2xl:py-24"
+          className="live-highlight pointer-events-none whitespace-pre-wrap break-words px-4 pt-8 pb-6 xs:px-5 xs:pt-10 xs:pb-8 sm:px-8 sm:pt-12 sm:pb-10 md:px-10 md:pt-16 md:pb-14 lg:px-14 lg:pt-20 lg:pb-16 xl:px-18 xl:pt-24 xl:pb-20 2xl:px-24 2xl:pt-28 2xl:pb-24"
           aria-hidden="true"
         >
           {value ? processContent(value) : <span className="md-placeholder">{placeholder}</span>}
@@ -682,7 +682,7 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
           onClick={handleClick}
           onScroll={syncScroll}
           placeholder=""
-          className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent px-4 py-6 xs:px-6 xs:py-8 sm:px-8 sm:py-10 md:px-12 md:py-14 lg:px-16 lg:py-16 xl:px-20 xl:py-20 2xl:px-24 2xl:py-24 pb-20 xs:pb-24 sm:pb-28 md:pb-32"
+          className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent px-4 pt-8 pb-6 xs:px-5 xs:pt-10 xs:pb-8 sm:px-8 sm:pt-12 sm:pb-10 md:px-10 md:pt-16 md:pb-14 lg:px-14 lg:pt-20 lg:pb-16 xl:px-18 xl:pt-24 xl:pb-20 2xl:px-24 2xl:pt-28 2xl:pb-24 !pb-24 xs:!pb-28 sm:!pb-32 md:!pb-36"
           spellCheck={false}
           autoComplete="off"
           autoCapitalize="sentences"

@@ -263,10 +263,12 @@
   .floating-menu {
     background: hsl(var(--menu-bg));
     box-shadow:
-      0 8px 16px -4px hsl(var(--menu-shadow) / 0.12),
-      0 4px 8px -4px hsl(var(--menu-shadow) / 0.08),
-      0 0 0 1px hsl(var(--border) / 0.4);
+      0 10px 25px -5px hsl(var(--menu-shadow) / 0.15),
+      0 8px 10px -6px hsl(var(--menu-shadow) / 0.1),
+      0 0 0 1px hsl(var(--border) / 0.5);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   .floating-menu:active {
@@ -277,9 +279,23 @@
   @media (max-width: 767px) {
     .floating-menu button,
     .floating-menu [role="menuitem"] {
+      min-height: 48px;
+      padding-top: 0.875rem;
+      padding-bottom: 0.875rem;
+      font-size: 0.9375rem;
+    }
+
+    .floating-menu [role="menuitem"] svg {
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .floating-menu [role="menuitem"] {
       min-height: 44px;
-      padding-top: 0.75rem;
-      padding-bottom: 0.75rem;
+      font-size: 0.9rem;
     }
   }
 
@@ -769,6 +785,7 @@
   /* Live Editor Container */
   .live-editor-container {
     position: relative;
+    min-height: 100%;
   }
 
   /* Live Editor - Overlay approach - MUST match exactly */
@@ -782,6 +799,61 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Mobile typography */
+  @media (max-width: 479px) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 16px !important;
+      line-height: 1.7;
+      letter-spacing: 0.01em;
+    }
+  }
+
+  /* Small mobile typography */
+  @media (min-width: 480px) and (max-width: 639px) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 17px;
+      line-height: 1.75;
+    }
+  }
+
+  /* Tablet typography */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 1.0625rem;
+      line-height: 1.8;
+    }
+  }
+
+  /* Desktop typography */
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 1.1875rem;
+      line-height: 1.85;
+    }
+  }
+
+  /* Large desktop typography */
+  @media (min-width: 1280px) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 1.3125rem;
+      line-height: 1.9;
+    }
+  }
+
+  /* Extra large desktop typography */
+  @media (min-width: 1536px) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 1.4375rem;
+      line-height: 1.95;
+    }
   }
 
   .live-highlight {
@@ -860,6 +932,17 @@
   .md-placeholder {
     color: hsl(var(--editor-placeholder));
     font-style: italic;
+    opacity: 0.7;
+    display: block;
+    text-align: left;
+  }
+
+  /* Mobile placeholder - more prominent */
+  @media (max-width: 639px) {
+    .md-placeholder {
+      font-size: 1.1em;
+      line-height: 1.6;
+    }
   }
 
   /* Headings - same font for cursor sync, use weight/color for visual */
@@ -950,36 +1033,11 @@
     opacity: 0.8;
   }
 
-  /* Mobile adjustments for live editor */
-  @media (max-width: 480px) {
-    .live-highlight,
-    .live-textarea {
-      font-size: 16px !important;
-      line-height: 1.75;
-    }
-
-    /* Optimize scrolling performance */
+  /* Optimize scrolling performance on mobile */
+  @media (max-width: 767px) {
     .live-textarea {
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
-    }
-  }
-
-  /* Tablet adjustments for live editor */
-  @media (min-width: 481px) and (max-width: 768px) {
-    .live-highlight,
-    .live-textarea {
-      font-size: 1rem;
-      line-height: 1.8;
-    }
-  }
-
-  /* Tablet landscape - optimize for wider viewports */
-  @media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
-    .live-highlight,
-    .live-textarea {
-      font-size: 1.125rem;
-      line-height: 1.85;
     }
   }
 }
