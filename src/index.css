@@ -265,6 +265,96 @@
   .markdown-preview em {
     @apply italic;
   }
+
+  /* Live Editor Styles */
+  .live-editor-overlay {
+    font-family: 'Lora', Georgia, serif;
+    color: hsl(var(--editor-text));
+    line-height: 1.8;
+    letter-spacing: 0.01em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .live-editor-input {
+    font-family: 'Lora', Georgia, serif;
+    background: hsl(var(--editor-bg));
+    color: transparent;
+    caret-color: hsl(var(--editor-cursor));
+    line-height: 1.8;
+    letter-spacing: 0.01em;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .live-editor-input::selection {
+    background: hsl(var(--editor-selection));
+    color: transparent;
+  }
+
+  .live-editor-content {
+    pointer-events: none;
+  }
+
+  .live-h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .live-h2 {
+    @apply text-xl sm:text-2xl md:text-3xl;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .live-h3 {
+    @apply text-lg sm:text-xl md:text-2xl;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .live-h4 {
+    @apply text-base sm:text-lg md:text-xl font-semibold;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .live-h5 {
+    @apply text-sm sm:text-base md:text-lg font-semibold;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .live-h6 {
+    @apply text-xs sm:text-sm md:text-base font-semibold;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .live-line {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+
+  .live-code-marker {
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    @apply text-sm sm:text-base;
+  }
+
+  .live-code-line {
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    @apply text-sm sm:text-base pl-4;
+    background: hsl(var(--muted) / 0.3);
+  }
+
+  .live-inline-code {
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    @apply text-sm sm:text-base px-1 rounded;
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  /* Mobile adjustments for live editor */
+  @media (max-width: 640px) {
+    .live-editor-input,
+    .live-editor-overlay {
+      font-size: 16px !important;
+      line-height: 1.7;
+    }
+  }
 }
 
 /* Animation utilities */

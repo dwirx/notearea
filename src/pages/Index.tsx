@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import Editor from '@/components/Editor';
+import LiveEditor from '@/components/LiveEditor';
 import MarkdownPreview from '@/components/MarkdownPreview';
 import FloatingMenu from '@/components/FloatingMenu';
 import StatusBar from '@/components/StatusBar';
@@ -64,7 +64,7 @@ const Index = () => {
         {isPreview ? (
           <MarkdownPreview content={content} />
         ) : (
-          <Editor
+          <LiveEditor
             value={content}
             onChange={setContent}
             placeholder="# Mulai menulis...
