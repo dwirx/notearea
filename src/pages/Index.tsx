@@ -48,7 +48,7 @@ const Index = () => {
     deleteDocument,
   } = useDocuments();
 
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme, currentTheme, setTheme } = useTheme();
 
   // Settings
   const { settings, setSetting, resetSettings, getWordCountProgress } = useSettings();
@@ -463,6 +463,8 @@ Ketik / untuk opsi insert cepat."
         settings={settings}
         onSettingChange={setSetting}
         onReset={resetSettings}
+        currentThemeId={currentTheme?.id}
+        onThemeChange={setTheme}
       />
 
       {/* Formatting Toolbar (Mobile only) */}

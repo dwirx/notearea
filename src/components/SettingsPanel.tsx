@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, Type, AlignLeft, Target, Moon, Sun, Monitor, RotateCcw, Maximize2 } from 'lucide-react';
+import { X, Settings, Type, AlignLeft, Target, Moon, Sun, Monitor, RotateCcw, Maximize2, Palette, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Settings as SettingsType, WORD_COUNT_PRESETS, FONT_FAMILIES, LINE_HEIGHTS, EDITOR_WIDTHS } from '@/hooks/useSettings';
+import { getLightThemes, getDarkThemes, ColorTheme } from '@/lib/themes';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -18,7 +19,64 @@ interface SettingsPanelProps {
   settings: SettingsType;
   onSettingChange: <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => void;
   onReset: () => void;
+  currentThemeId?: string;
+  onThemeChange?: (themeId: string) => void;
 }
+
+// Theme preview card component
+const ThemeCard = ({
+  theme,
+  isSelected,
+  onClick,
+}: {
+  theme: ColorTheme;
+  isSelected: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`relative flex flex-col gap-1.5 p-2 rounded-lg border-2 transition-all hover:scale-[1.02] ${
+      isSelected
+        ? 'border-primary shadow-md'
+        : 'border-border/50 hover:border-border'
+    }`}
+    style={{ background: theme.preview.bg }}
+  >
+    {/* Selected indicator */}
+    {isSelected && (
+      <div
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+        style={{ background: theme.preview.accent }}
+      >
+        <Check className="w-3 h-3 text-white" />
+      </div>
+    )}
+
+    {/* Color preview dots */}
+    <div className="flex gap-1">
+      <div
+        className="w-3 h-3 rounded-full"
+        style={{ background: theme.preview.accent }}
+      />
+      <div
+        className="w-3 h-3 rounded-full"
+        style={{ background: theme.preview.fg }}
+      />
+      <div
+        className="w-3 h-3 rounded-full border"
+        style={{ background: theme.preview.bg, borderColor: theme.preview.fg + '30' }}
+      />
+    </div>
+
+    {/* Theme name */}
+    <span
+      className="text-[10px] font-medium truncate w-full text-left"
+      style={{ color: theme.preview.fg }}
+    >
+      {theme.name.replace(' Light', '').replace(' Dark', '')}
+    </span>
+  </button>
+);
 
 const SettingsPanel = ({
   isOpen,
@@ -26,7 +84,12 @@ const SettingsPanel = ({
   settings,
   onSettingChange,
   onReset,
+  currentThemeId = 'default-light',
+  onThemeChange,
 }: SettingsPanelProps) => {
+  const lightThemes = getLightThemes();
+  const darkThemes = getDarkThemes();
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -47,7 +110,7 @@ const SettingsPanel = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full xs:w-[320px] sm:w-[360px] bg-card/98 backdrop-blur-xl border-l border-border/50 shadow-2xl flex flex-col safe-top safe-bottom"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full xs:w-[320px] sm:w-[380px] bg-card/98 backdrop-blur-xl border-l border-border/50 shadow-2xl flex flex-col safe-top safe-bottom"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 sm:py-4 border-b border-border/50 bg-muted/30">
@@ -70,6 +133,64 @@ const SettingsPanel = ({
             {/* Content */}
             <ScrollArea className="flex-1">
               <div className="p-4 sm:p-5 space-y-6 sm:space-y-7">
+                {/* Color Theme Section */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Palette className="h-3.5 w-3.5" />
+                    Tema Warna
+                  </h3>
+
+                  {/* Light Themes */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sun className="h-3.5 w-3.5" />
+                      <span>Tema Terang</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {lightThemes.map((theme) => (
+                        <ThemeCard
+                          key={theme.id}
+                          theme={theme}
+                          isSelected={currentThemeId === theme.id}
+                          onClick={() => onThemeChange?.(theme.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dark Themes */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Moon className="h-3.5 w-3.5" />
+                      <span>Tema Gelap</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {darkThemes.map((theme) => (
+                        <ThemeCard
+                          key={theme.id}
+                          theme={theme}
+                          isSelected={currentThemeId === theme.id}
+                          onClick={() => onThemeChange?.(theme.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* System Theme Toggle */}
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/30">
+                    <Monitor className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-foreground flex-1">Ikuti sistem</span>
+                    <Button
+                      variant={settings.theme === 'system' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => onSettingChange('theme', settings.theme === 'system' ? 'light' : 'system')}
+                      className="h-7 px-3 text-xs"
+                    >
+                      {settings.theme === 'system' ? 'Aktif' : 'Nonaktif'}
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Typography Section */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -222,49 +343,6 @@ const SettingsPanel = ({
                         Progress akan ditampilkan di status bar
                       </p>
                     )}
-                  </div>
-                </div>
-
-                {/* Appearance Section */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Tampilan
-                  </h3>
-
-                  {/* Theme */}
-                  <div className="space-y-3 p-3 rounded-xl bg-muted/30 border border-border/30">
-                    <label className="text-sm font-medium text-foreground">
-                      Tema
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button
-                        variant={settings.theme === 'light' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => onSettingChange('theme', 'light')}
-                        className="flex items-center gap-1.5 h-9 sm:h-10"
-                      >
-                        <Sun className="h-4 w-4" />
-                        <span className="text-xs">Terang</span>
-                      </Button>
-                      <Button
-                        variant={settings.theme === 'dark' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => onSettingChange('theme', 'dark')}
-                        className="flex items-center gap-1.5 h-9 sm:h-10"
-                      >
-                        <Moon className="h-4 w-4" />
-                        <span className="text-xs">Gelap</span>
-                      </Button>
-                      <Button
-                        variant={settings.theme === 'system' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => onSettingChange('theme', 'system')}
-                        className="flex items-center gap-1.5 h-9 sm:h-10"
-                      >
-                        <Monitor className="h-4 w-4" />
-                        <span className="text-xs">Sistem</span>
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </div>

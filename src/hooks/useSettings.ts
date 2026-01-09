@@ -8,6 +8,7 @@ export interface Settings {
   autoSave: boolean;
   autoSaveInterval: number;
   theme: 'light' | 'dark' | 'system';
+  colorTheme: string; // Theme ID from themes.ts
   editorWidth: 'narrow' | 'medium' | 'wide' | 'full';
 }
 
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: Settings = {
   autoSave: true,
   autoSaveInterval: 1500,
   theme: 'system',
+  colorTheme: 'default-light', // Will be adjusted based on system preference
   editorWidth: 'medium',
 };
 
