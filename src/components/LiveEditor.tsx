@@ -279,11 +279,26 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
   }, [value]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
-    // Delay to let cursor position update
+    const textarea = e.currentTarget;
+
+    // Ctrl/Cmd + Click to open link immediately
+    if (e.ctrlKey || e.metaKey) {
+      setTimeout(() => {
+        const pos = textarea.selectionStart;
+        const url = findUrlAtPosition(value, pos);
+        if (url) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+          setLinkTooltip(null);
+        }
+      }, 10);
+      return;
+    }
+
+    // Regular click - show tooltip
     setTimeout(() => {
-      checkForLinkAtCursor(e.currentTarget);
+      checkForLinkAtCursor(textarea);
     }, 10);
-  }, [checkForLinkAtCursor]);
+  }, [value, checkForLinkAtCursor]);
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Check for link when moving with arrow keys
