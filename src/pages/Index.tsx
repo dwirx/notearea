@@ -88,6 +88,7 @@ Ketik apa saja dan otomatis tersimpan ke URL."
         onTogglePreview={togglePreview}
         isDark={isDark}
         onToggleTheme={toggleTheme}
+        content={content}
       />
 
       {/* QR Modal */}

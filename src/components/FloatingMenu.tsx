@@ -11,6 +11,8 @@ import {
   Check,
   Moon,
   Sun,
+  Link,
+  ClipboardCopy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { compressText } from '@/lib/compression';
 
 interface FloatingMenuProps {
   onNew: () => void;
@@ -31,6 +34,7 @@ interface FloatingMenuProps {
   onTogglePreview: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  content: string;
 }
 
 const FloatingMenu = ({
@@ -43,33 +47,56 @@ const FloatingMenu = ({
   onTogglePreview,
   isDark,
   onToggleTheme,
+  content,
 }: FloatingMenuProps) => {
-  const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
 
-  const handleShare = async () => {
+  // Generate clean shareable URL with compressed content
+  const generateShareableUrl = () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    if (!content) return baseUrl;
+    const compressed = compressText(content);
+    return `${baseUrl}#${compressed}`;
+  };
+
+  const handleCopyUrl = async () => {
     try {
+      const shareableUrl = generateShareableUrl();
+      
       // Try native share first on mobile
       if (navigator.share) {
         await navigator.share({
           title: document.title,
-          url: window.location.href,
+          url: shareableUrl,
         });
       } else {
-        await navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        await navigator.clipboard.writeText(shareableUrl);
+        setCopiedUrl(true);
+        setTimeout(() => setCopiedUrl(false), 2000);
       }
       onShare();
     } catch (error) {
       // Fallback to clipboard
       try {
-        await navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        const shareableUrl = generateShareableUrl();
+        await navigator.clipboard.writeText(shareableUrl);
+        setCopiedUrl(true);
+        setTimeout(() => setCopiedUrl(false), 2000);
         onShare();
       } catch (clipError) {
         console.error('Failed to share:', clipError);
       }
+    }
+  };
+
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
     }
   };
 
@@ -128,11 +155,11 @@ const FloatingMenu = ({
             <DropdownMenuSeparator className="my-1.5 sm:my-2" />
 
             <DropdownMenuItem
-              onClick={handleShare}
+              onClick={handleCopyText}
               className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               <AnimatePresence mode="wait">
-                {copied ? (
+                {copiedText ? (
                   <motion.div
                     key="check"
                     initial={{ scale: 0 }}
@@ -151,8 +178,39 @@ const FloatingMenu = ({
                     exit={{ scale: 0 }}
                     className="flex items-center gap-3"
                   >
-                    <Copy className="h-4 w-4" />
-                    <span>Bagikan</span>
+                    <ClipboardCopy className="h-4 w-4" />
+                    <span>Salin Teks</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={handleCopyUrl}
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
+            >
+              <AnimatePresence mode="wait">
+                {copiedUrl ? (
+                  <motion.div
+                    key="check"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    <Check className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600">Tersalin!</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="link"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    <Link className="h-4 w-4" />
+                    <span>Salin URL</span>
                   </motion.div>
                 )}
               </AnimatePresence>
