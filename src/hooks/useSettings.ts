@@ -130,6 +130,13 @@ export const FONT_FAMILIES = [
   { label: 'Georgia', value: 'Georgia', preview: 'font-serif' },
   { label: 'Lora', value: 'Lora', preview: 'font-lora' },
   { label: 'Merriweather', value: 'Merriweather', preview: 'font-serif' },
+  { label: 'Courier New (Typewriter)', value: 'Courier New', preview: 'font-mono' },
+  { label: 'Special Elite (Typewriter)', value: 'Special Elite', preview: 'font-mono' },
+  { label: 'VT323 (Retro Typewriter)', value: 'VT323', preview: 'font-mono' },
+  { label: 'IBM Plex Mono', value: 'IBM Plex Mono', preview: 'font-mono' },
+  { label: 'Source Code Pro', value: 'Source Code Pro', preview: 'font-mono' },
+  { label: 'Inconsolata', value: 'Inconsolata', preview: 'font-mono' },
+  { label: 'Courier Prime', value: 'Courier Prime', preview: 'font-mono' },
   { label: 'Roboto Mono', value: 'Roboto Mono', preview: 'font-mono' },
   { label: 'JetBrains Mono', value: 'JetBrains Mono', preview: 'font-mono' },
   { label: 'Fira Code', value: 'Fira Code', preview: 'font-mono' },
@@ -153,11 +160,26 @@ export const EDITOR_WIDTHS = [
 ];
 
 // Helper to get CSS styles from settings
-export const getEditorStyles = (settings: Settings): React.CSSProperties => ({
-  fontSize: `${settings.fontSize}px`,
-  fontFamily: `"${settings.fontFamily}", system-ui, sans-serif`,
-  lineHeight: settings.lineHeight,
-});
+export const getEditorStyles = (settings: Settings): React.CSSProperties => {
+  // Determine fallback font based on font family type
+  const isMonospace = [
+    'Courier New', 'Special Elite', 'VT323', 'IBM Plex Mono', 
+    'Source Code Pro', 'Inconsolata', 'Courier Prime', 
+    'Roboto Mono', 'JetBrains Mono', 'Fira Code'
+  ].includes(settings.fontFamily);
+  
+  const fallback = isMonospace 
+    ? 'monospace' 
+    : settings.fontFamily === 'Georgia' || settings.fontFamily === 'Lora' || settings.fontFamily === 'Merriweather'
+    ? 'serif'
+    : 'system-ui, sans-serif';
+  
+  return {
+    fontSize: `${settings.fontSize}px`,
+    fontFamily: `"${settings.fontFamily}", ${fallback}`,
+    lineHeight: settings.lineHeight,
+  };
+};
 
 // Helper to get editor max-width class
 export const getEditorWidthClass = (width: Settings['editorWidth']): string => {

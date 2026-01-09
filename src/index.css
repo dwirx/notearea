@@ -133,6 +133,68 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Font options for writing - Typewriter styles */
+  .font-typewriter {
+    font-family: 'Courier New', 'Courier', monospace;
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+
+  .font-special-elite {
+    font-family: 'Special Elite', 'Courier New', monospace;
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+  }
+
+  .font-vt323 {
+    font-family: 'VT323', 'Courier New', monospace;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    font-size: 1.1em;
+  }
+
+  .font-ibm-plex-mono {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    letter-spacing: 0.02em;
+    line-height: 1.7;
+  }
+
+  .font-source-code-pro {
+    font-family: 'Source Code Pro', 'Courier New', monospace;
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+  }
+
+  .font-inconsolata {
+    font-family: 'Inconsolata', 'Courier New', monospace;
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+  }
+
+  .font-courier-prime {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    letter-spacing: 0.03em;
+    line-height: 1.7;
+  }
+
+  .font-jetbrains-mono {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+  }
+
+  .font-fira-code {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+  }
+
+  .font-roboto-mono {
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+  }
+
   .editor-textarea::placeholder {
     color: hsl(var(--editor-placeholder));
     font-style: italic;
@@ -232,6 +294,8 @@
   }
 
   /* Markdown preview styling */
+  /* Note: font-family is set via inline style from editorStyles prop */
+  /* This is a fallback - will be overridden by inline style */
   .markdown-preview {
     font-family: 'Lora', Georgia, serif;
     color: hsl(var(--editor-text));
