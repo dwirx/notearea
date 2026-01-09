@@ -53,37 +53,37 @@ const QRModal = ({ isOpen, onClose, url }: QRModalProps) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl shadow-2xl p-6 sm:p-8 max-w-[90vw] sm:max-w-sm w-full mx-4"
           >
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
             >
               <X className="h-5 w-5" />
             </button>
 
             {/* Content */}
             <div className="text-center">
-              <h2 className="text-xl font-semibold mb-2">Kode QR</h2>
-              <p className="text-sm text-muted-foreground mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">Kode QR</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">
                 Scan untuk membuka dokumen ini
               </p>
 
               {/* QR Code */}
-              <div className="bg-white p-6 rounded-xl inline-block mb-6">
+              <div className="bg-white p-4 sm:p-6 rounded-xl inline-block mb-4 sm:mb-6">
                 <QRCodeSVG
                   value={url}
-                  size={200}
+                  size={180}
                   level="M"
-                  className="qr-code-svg"
+                  className="qr-code-svg w-[150px] h-[150px] sm:w-[180px] sm:h-[180px]"
                 />
               </div>
 
               {/* Download button */}
               <Button
                 onClick={handleDownload}
-                className="w-full gap-2"
+                className="w-full gap-2 touch-manipulation"
                 variant="default"
               >
                 <Download className="h-4 w-4" />

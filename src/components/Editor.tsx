@@ -62,7 +62,7 @@ const Editor = ({ value, onChange, placeholder = "Mulai menulis..." }: EditorPro
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="w-full min-h-screen"
+      className="w-full min-h-screen safe-top"
     >
       <textarea
         ref={textareaRef}
@@ -70,11 +70,11 @@ const Editor = ({ value, onChange, placeholder = "Mulai menulis..." }: EditorPro
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="editor-textarea w-full min-h-screen resize-none outline-none border-0 px-6 py-12 md:px-12 md:py-16 lg:px-20 lg:py-20 text-lg md:text-xl leading-relaxed"
+        className="editor-textarea w-full min-h-screen resize-none outline-none border-0 px-4 py-8 sm:px-6 sm:py-12 md:px-12 md:py-16 lg:px-20 lg:py-20 text-base sm:text-lg md:text-xl leading-relaxed pb-32"
         spellCheck={false}
         autoComplete="off"
-        autoCapitalize="off"
-        autoCorrect="off"
+        autoCapitalize="sentences"
+        autoCorrect="on"
       />
     </motion.div>
   );

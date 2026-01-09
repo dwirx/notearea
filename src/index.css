@@ -127,6 +127,8 @@
     caret-color: hsl(var(--editor-cursor));
     line-height: 1.8;
     letter-spacing: 0.01em;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
   }
 
   .editor-textarea::placeholder {
@@ -140,7 +142,7 @@
 
   /* Scrollbar styling */
   .editor-textarea::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
 
   .editor-textarea::-webkit-scrollbar-track {
@@ -154,6 +156,23 @@
 
   .editor-textarea::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  /* Touch-friendly styles */
+  @media (max-width: 640px) {
+    .editor-textarea {
+      font-size: 16px !important; /* Prevents iOS zoom on focus */
+      line-height: 1.7;
+    }
+  }
+
+  /* Safe area insets for mobile */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
   }
 
   /* Floating menu styling */
