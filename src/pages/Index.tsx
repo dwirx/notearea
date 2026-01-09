@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import LiveEditor from '@/components/LiveEditor';
 import MarkdownPreview from '@/components/MarkdownPreview';
@@ -9,14 +9,20 @@ import DocumentsSidebar from '@/components/DocumentsSidebar';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from 'sonner';
-import { compressText } from '@/lib/compression';
+import { compressText, decompressText } from '@/lib/compression';
 import { parseMarkdown } from '@/lib/markdown';
+
+const AUTO_SAVE_DELAY = 1500; // 1.5 seconds
 
 const Index = () => {
   const [isPreview, setIsPreview] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [content, setContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const hasUnsavedChanges = useRef(false);
 
   const {
     documents,
@@ -37,12 +43,10 @@ const Index = () => {
 
     const hash = window.location.hash.slice(1);
     if (hash) {
-      // URL has content - load it but don't save to documents yet
       try {
-        const { decompressText } = require('@/lib/compression');
         const decompressed = decompressText(hash);
         setContent(decompressed);
-        setCurrentDocId(null); // Not a saved document
+        setCurrentDocId(null);
       } catch {
         setContent('');
       }
@@ -51,7 +55,61 @@ const Index = () => {
     }
   }, [isLoaded]);
 
-  // Sync content changes
+  // Auto-save function
+  const performAutoSave = useCallback(() => {
+    if (!content.trim() || !hasUnsavedChanges.current) return;
+
+    setIsSaving(true);
+    
+    if (currentDocId) {
+      // Update existing document
+      updateDocument(currentDocId, content);
+    } else {
+      // Create new document
+      createDocument(content);
+    }
+    
+    hasUnsavedChanges.current = false;
+    setLastSaved(Date.now());
+    
+    setTimeout(() => setIsSaving(false), 500);
+  }, [content, currentDocId, updateDocument, createDocument]);
+
+  // Schedule auto-save
+  const scheduleAutoSave = useCallback(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+    
+    hasUnsavedChanges.current = true;
+    
+    autoSaveTimer.current = setTimeout(() => {
+      performAutoSave();
+    }, AUTO_SAVE_DELAY);
+  }, [performAutoSave]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, []);
+
+  // Save on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (hasUnsavedChanges.current && content.trim()) {
+        performAutoSave();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [content, performAutoSave]);
+
+  // Handle content changes with auto-save
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
     
@@ -63,52 +121,75 @@ const Index = () => {
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    // Auto-save to current document if one is selected
-    if (currentDocId) {
-      updateDocument(currentDocId, newContent);
+    // Schedule auto-save
+    if (newContent.trim()) {
+      scheduleAutoSave();
     }
-  }, [currentDocId, updateDocument]);
+  }, [scheduleAutoSave]);
 
-  // Handle save current content as new document
+  // Manual save
   const handleSaveDocument = useCallback(() => {
     if (!content.trim()) {
       toast.error('Tidak ada konten untuk disimpan');
       return;
     }
 
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+
+    setIsSaving(true);
+
     if (currentDocId) {
       updateDocument(currentDocId, content);
       toast.success('Dokumen tersimpan!');
     } else {
-      const newDoc = createDocument(content);
+      createDocument(content);
       toast.success('Dokumen baru tersimpan!');
     }
+
+    hasUnsavedChanges.current = false;
+    setLastSaved(Date.now());
+    setTimeout(() => setIsSaving(false), 500);
   }, [content, currentDocId, createDocument, updateDocument]);
 
   // Handle new document
   const handleNewDocument = useCallback(() => {
+    // Save current content first if there's unsaved changes
+    if (hasUnsavedChanges.current && content.trim()) {
+      performAutoSave();
+    }
+
     setContent('');
     setCurrentDocId(null);
     setIsPreview(false);
+    setLastSaved(null);
+    hasUnsavedChanges.current = false;
     window.history.replaceState(null, '', window.location.pathname);
     toast.success('Dokumen baru dibuat');
-  }, [setCurrentDocId]);
+  }, [content, setCurrentDocId, performAutoSave]);
 
   // Handle select document
   const handleSelectDocument = useCallback((id: string) => {
+    // Save current content first
+    if (hasUnsavedChanges.current && content.trim() && currentDocId) {
+      updateDocument(currentDocId, content);
+    }
+
     const doc = documents.find(d => d.id === id);
     if (doc) {
       setCurrentDocId(id);
       setContent(doc.content);
       setIsPreview(false);
+      setLastSaved(doc.updatedAt);
+      hasUnsavedChanges.current = false;
       
-      // Update URL
       if (doc.content) {
         const compressed = compressText(doc.content);
         window.history.replaceState(null, '', `#${compressed}`);
       }
     }
-  }, [documents, setCurrentDocId]);
+  }, [documents, setCurrentDocId, content, currentDocId, updateDocument]);
 
   // Handle delete document
   const handleDeleteDocument = useCallback((id: string) => {
@@ -116,6 +197,8 @@ const Index = () => {
     
     if (currentDocId === id) {
       setContent('');
+      setLastSaved(null);
+      hasUnsavedChanges.current = false;
       window.history.replaceState(null, '', window.location.pathname);
     }
     
@@ -212,7 +295,7 @@ const Index = () => {
             onChange={handleContentChange}
             placeholder="# Mulai menulis...
 
-Ketik apa saja dan otomatis tersimpan ke URL."
+Ketik apa saja — otomatis tersimpan."
           />
         )}
       </main>
@@ -221,7 +304,9 @@ Ketik apa saja dan otomatis tersimpan ke URL."
       <StatusBar 
         content={content} 
         isPreview={isPreview}
-        isSaved={!!currentDocId}
+        isSaved={!!currentDocId || !!lastSaved}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
       />
 
       {/* Floating Menu */}
