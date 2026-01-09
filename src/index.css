@@ -452,41 +452,37 @@
     font-style: italic;
   }
 
-  /* Headings - same font-size for cursor sync, use weight/color for visual */
+  /* Headings - same font for cursor sync, use weight/color for visual */
   .md-h1 {
     font-weight: 700;
     color: hsl(var(--foreground));
-    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .md-h2 {
     font-weight: 700;
     color: hsl(var(--foreground));
-    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .md-h3 {
     font-weight: 600;
     color: hsl(var(--foreground));
-    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .md-h4 {
     font-weight: 600;
     color: hsl(var(--editor-text));
-    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .md-h5 {
     font-weight: 600;
     color: hsl(var(--editor-text));
-    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .md-h6 {
     font-weight: 500;
     color: hsl(var(--muted-foreground));
-    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   /* Bold */
@@ -507,9 +503,8 @@
     color: hsl(var(--muted-foreground));
   }
 
-  /* Inline code - no padding/margin to keep cursor sync */
+  /* Inline code - NO font-family change to keep cursor sync */
   .md-inline-code {
-    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
     background: hsl(var(--muted) / 0.5);
     border-radius: 3px;
   }
@@ -518,9 +513,8 @@
     color: hsl(var(--primary));
   }
 
-  /* Code fence */
+  /* Code fence - NO font-family change to keep cursor sync */
   .md-code-fence {
-    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
     color: hsl(var(--muted-foreground));
   }
 
@@ -528,9 +522,8 @@
     color: hsl(var(--primary));
   }
 
-  /* Code content */
+  /* Code content - NO font-family change to keep cursor sync */
   .md-code-content {
-    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
     color: hsl(var(--editor-text));
   }
 
