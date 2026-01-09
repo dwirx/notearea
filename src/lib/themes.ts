@@ -7,6 +7,27 @@
  * 3. CSS variables will be applied automatically
  */
 
+export interface SyntaxColors {
+  // Markdown syntax markers (# ** ` etc)
+  syntax: string;
+  // Headings
+  heading: string;
+  // Bold text
+  bold: string;
+  // Italic text
+  italic: string;
+  // Strikethrough
+  strike: string;
+  // Links
+  link: string;
+  // Inline code
+  code: string;
+  // Code block content
+  codeBlock: string;
+  // Code language identifier
+  codeLang: string;
+}
+
 export interface ColorTheme {
   id: string;
   name: string;
@@ -73,6 +94,8 @@ export interface ColorTheme {
     sidebarBorder: string;
     sidebarRing: string;
   };
+  // Syntax highlighting colors
+  syntax: SyntaxColors;
 }
 
 // Default Light Theme (Warm Paper)
@@ -122,6 +145,17 @@ const defaultLight: ColorTheme = {
     sidebarAccentForeground: '30 10% 20%',
     sidebarBorder: '35 15% 88%',
     sidebarRing: '32 95% 44%',
+  },
+  syntax: {
+    syntax: '32 95% 55%',        // Bright amber for markers
+    heading: '280 60% 55%',      // Purple for headings
+    bold: '330 80% 55%',         // Pink for bold
+    italic: '160 60% 45%',       // Teal for italic
+    strike: '30 8% 60%',         // Muted for strike
+    link: '217 91% 55%',         // Blue for links
+    code: '340 75% 55%',         // Rose for inline code
+    codeBlock: '30 10% 35%',     // Dark text for code block
+    codeLang: '200 80% 50%',     // Cyan for lang
   },
 };
 
@@ -173,6 +207,17 @@ const defaultDark: ColorTheme = {
     sidebarBorder: '30 10% 18%',
     sidebarRing: '35 100% 55%',
   },
+  syntax: {
+    syntax: '35 100% 60%',       // Bright amber for markers
+    heading: '50 100% 75%',      // Gold for headings
+    bold: '330 90% 75%',         // Pink for bold
+    italic: '160 70% 65%',       // Teal for italic
+    strike: '40 10% 50%',        // Muted for strike
+    link: '199 89% 65%',         // Cyan for links
+    code: '35 100% 65%',         // Amber for inline code
+    codeBlock: '40 15% 85%',     // Light text for code block
+    codeLang: '180 70% 60%',     // Cyan for lang
+  },
 };
 
 // Gruvbox Light
@@ -222,6 +267,17 @@ const gruvboxLight: ColorTheme = {
     sidebarAccentForeground: '30 5% 22%',
     sidebarBorder: '48 40% 75%',
     sidebarRing: '24 100% 45%',
+  },
+  syntax: {
+    syntax: '24 100% 50%',       // Orange for markers
+    heading: '6 96% 45%',        // Red for headings
+    bold: '6 96% 50%',           // Red for bold
+    italic: '61 66% 35%',        // Olive green for italic
+    strike: '30 5% 55%',         // Muted for strike
+    link: '175 60% 40%',         // Aqua for links
+    code: '285 60% 45%',         // Purple for inline code
+    codeBlock: '30 5% 25%',      // Dark text for code block
+    codeLang: '175 60% 40%',     // Aqua for lang
   },
 };
 
@@ -273,6 +329,17 @@ const gruvboxDark: ColorTheme = {
     sidebarBorder: '0 0% 26%',
     sidebarRing: '27 99% 55%',
   },
+  syntax: {
+    syntax: '27 99% 60%',        // Orange for markers
+    heading: '43 90% 80%',       // Yellow for headings
+    bold: '6 96% 65%',           // Red for bold
+    italic: '104 35% 65%',       // Green for italic
+    strike: '43 30% 50%',        // Muted for strike
+    link: '175 60% 60%',         // Aqua for links
+    code: '285 60% 70%',         // Purple for inline code
+    codeBlock: '43 59% 80%',     // Light text for code block
+    codeLang: '175 60% 55%',     // Aqua for lang
+  },
 };
 
 // Nord Light (Snow Storm)
@@ -322,6 +389,17 @@ const nordLight: ColorTheme = {
     sidebarAccentForeground: '220 16% 25%',
     sidebarBorder: '218 20% 85%',
     sidebarRing: '213 32% 52%',
+  },
+  syntax: {
+    syntax: '213 50% 55%',       // Nord blue for markers
+    heading: '354 42% 55%',      // Red for headings
+    bold: '354 42% 55%',         // Red for bold
+    italic: '92 28% 45%',        // Green for italic
+    strike: '220 10% 50%',       // Muted for strike
+    link: '179 35% 50%',         // Cyan for links
+    code: '311 25% 55%',         // Purple for inline code
+    codeBlock: '220 16% 25%',    // Dark text for code block
+    codeLang: '179 35% 50%',     // Cyan for lang
   },
 };
 
@@ -373,6 +451,17 @@ const nordDark: ColorTheme = {
     sidebarBorder: '220 16% 32%',
     sidebarRing: '193 43% 67%',
   },
+  syntax: {
+    syntax: '193 50% 70%',       // Nord cyan for markers
+    heading: '354 50% 65%',      // Red for headings
+    bold: '354 50% 65%',         // Red for bold
+    italic: '92 35% 65%',        // Green for italic
+    strike: '218 20% 55%',       // Muted for strike
+    link: '179 35% 70%',         // Teal for links
+    code: '311 25% 75%',         // Purple for inline code
+    codeBlock: '218 27% 85%',    // Light text for code block
+    codeLang: '179 35% 70%',     // Teal for lang
+  },
 };
 
 // Dracula
@@ -422,6 +511,17 @@ const dracula: ColorTheme = {
     sidebarAccentForeground: '60 30% 90%',
     sidebarBorder: '231 15% 30%',
     sidebarRing: '265 89% 78%',
+  },
+  syntax: {
+    syntax: '265 89% 78%',
+    heading: '326 100% 74%',
+    bold: '326 100% 74%',
+    italic: '135 94% 65%',
+    strike: '60 20% 55%',
+    link: '191 97% 77%',
+    code: '65 92% 76%',
+    codeBlock: '60 30% 90%',
+    codeLang: '191 97% 77%',
   },
 };
 
@@ -473,6 +573,17 @@ const solarizedLight: ColorTheme = {
     sidebarBorder: '44 40% 82%',
     sidebarRing: '205 82% 45%',
   },
+  syntax: {
+    syntax: '205 85% 50%',       // Blue for markers
+    heading: '18 89% 50%',       // Orange for headings
+    bold: '1 71% 55%',           // Red for bold
+    italic: '68 100% 35%',       // Yellow-green for italic
+    strike: '194 14% 50%',       // Muted for strike
+    link: '175 74% 40%',         // Cyan for links
+    code: '237 45% 50%',         // Violet for inline code
+    codeBlock: '192 81% 20%',    // Dark text for code block
+    codeLang: '175 74% 40%',     // Cyan for lang
+  },
 };
 
 // Solarized Dark
@@ -522,6 +633,17 @@ const solarizedDark: ColorTheme = {
     sidebarAccentForeground: '186 8% 70%',
     sidebarBorder: '192 60% 20%',
     sidebarRing: '205 82% 45%',
+  },
+  syntax: {
+    syntax: '205 90% 60%',       // Blue for markers
+    heading: '18 90% 60%',       // Orange for headings
+    bold: '1 75% 60%',           // Red for bold
+    italic: '68 100% 50%',       // Yellow-green for italic
+    strike: '186 8% 50%',        // Muted for strike
+    link: '175 80% 55%',         // Cyan for links
+    code: '237 50% 65%',         // Violet for inline code
+    codeBlock: '44 87% 85%',     // Light text for code block
+    codeLang: '175 80% 55%',     // Cyan for lang
   },
 };
 
@@ -573,6 +695,17 @@ const tokyoNight: ColorTheme = {
     sidebarBorder: '235 21% 26%',
     sidebarRing: '220 91% 72%',
   },
+  syntax: {
+    syntax: '220 91% 72%',
+    heading: '348 86% 70%',
+    bold: '348 86% 70%',
+    italic: '95 38% 62%',
+    strike: '229 20% 50%',
+    link: '172 81% 66%',
+    code: '38 100% 68%',
+    codeBlock: '229 31% 80%',
+    codeLang: '172 81% 66%',
+  },
 };
 
 // Catppuccin Mocha
@@ -622,6 +755,17 @@ const catppuccinMocha: ColorTheme = {
     sidebarAccentForeground: '226 64% 85%',
     sidebarBorder: '240 21% 28%',
     sidebarRing: '267 84% 81%',
+  },
+  syntax: {
+    syntax: '267 84% 81%',
+    heading: '343 81% 75%',
+    bold: '343 81% 75%',
+    italic: '115 54% 76%',
+    strike: '226 40% 55%',
+    link: '189 71% 73%',
+    code: '41 86% 83%',
+    codeBlock: '226 64% 85%',
+    codeLang: '189 71% 73%',
   },
 };
 
@@ -673,6 +817,444 @@ const catppuccinLatte: ColorTheme = {
     sidebarBorder: '220 20% 85%',
     sidebarRing: '267 83% 58%',
   },
+  syntax: {
+    syntax: '267 83% 58%',
+    heading: '347 87% 44%',
+    bold: '347 87% 44%',
+    italic: '109 58% 40%',
+    strike: '234 16% 50%',
+    link: '183 74% 35%',
+    code: '35 77% 49%',
+    codeBlock: '234 16% 35%',
+    codeLang: '183 74% 35%',
+  },
+};
+
+// Night Owl
+const nightOwl: ColorTheme = {
+  id: 'night-owl',
+  name: 'Night Owl',
+  description: 'Tema gelap untuk pengembang malam',
+  isDark: true,
+  preview: {
+    bg: '#011627',
+    fg: '#d6deeb',
+    accent: '#82aaff',
+  },
+  colors: {
+    background: '207 95% 8%',
+    foreground: '214 53% 91%',
+    card: '207 90% 10%',
+    cardForeground: '214 53% 91%',
+    popover: '207 90% 10%',
+    popoverForeground: '214 53% 91%',
+    primary: '224 100% 75%',
+    primaryForeground: '207 95% 8%',
+    secondary: '207 80% 14%',
+    secondaryForeground: '214 53% 85%',
+    muted: '207 70% 16%',
+    mutedForeground: '214 40% 60%',
+    accent: '224 100% 75%',
+    accentForeground: '207 95% 8%',
+    destructive: '0 100% 67%',
+    destructiveForeground: '207 95% 8%',
+    border: '207 60% 18%',
+    input: '207 60% 18%',
+    ring: '224 100% 75%',
+    editorBg: '207 95% 8%',
+    editorText: '214 53% 91%',
+    editorPlaceholder: '214 40% 50%',
+    editorSelection: '224 70% 35%',
+    editorSelectionText: '214 53% 98%',
+    editorCursor: '224 100% 75%',
+    menuBg: '207 85% 12%',
+    menuShadow: '0 0% 0%',
+    sidebarBackground: '207 90% 10%',
+    sidebarForeground: '214 53% 85%',
+    sidebarPrimary: '224 100% 75%',
+    sidebarPrimaryForeground: '207 95% 8%',
+    sidebarAccent: '207 80% 14%',
+    sidebarAccentForeground: '214 53% 85%',
+    sidebarBorder: '207 60% 18%',
+    sidebarRing: '224 100% 75%',
+  },
+  syntax: {
+    syntax: '224 100% 75%',
+    heading: '359 68% 67%',
+    bold: '359 68% 67%',
+    italic: '130 67% 72%',
+    strike: '214 40% 55%',
+    link: '180 100% 66%',
+    code: '42 100% 72%',
+    codeBlock: '214 53% 85%',
+    codeLang: '180 100% 66%',
+  },
+};
+
+// Pure Black (AMOLED)
+const pureBlack: ColorTheme = {
+  id: 'pure-black',
+  name: 'Pure Black',
+  description: 'Tema hitam murni untuk layar AMOLED',
+  isDark: true,
+  preview: {
+    bg: '#000000',
+    fg: '#ffffff',
+    accent: '#00d4ff',
+  },
+  colors: {
+    background: '0 0% 0%',
+    foreground: '0 0% 100%',
+    card: '0 0% 5%',
+    cardForeground: '0 0% 100%',
+    popover: '0 0% 5%',
+    popoverForeground: '0 0% 100%',
+    primary: '190 100% 50%',
+    primaryForeground: '0 0% 0%',
+    secondary: '0 0% 10%',
+    secondaryForeground: '0 0% 90%',
+    muted: '0 0% 12%',
+    mutedForeground: '0 0% 60%',
+    accent: '190 100% 50%',
+    accentForeground: '0 0% 0%',
+    destructive: '0 100% 50%',
+    destructiveForeground: '0 0% 100%',
+    border: '0 0% 15%',
+    input: '0 0% 15%',
+    ring: '190 100% 50%',
+    editorBg: '0 0% 0%',
+    editorText: '0 0% 100%',
+    editorPlaceholder: '0 0% 45%',
+    editorSelection: '190 70% 25%',
+    editorSelectionText: '0 0% 100%',
+    editorCursor: '190 100% 50%',
+    menuBg: '0 0% 6%',
+    menuShadow: '0 0% 0%',
+    sidebarBackground: '0 0% 5%',
+    sidebarForeground: '0 0% 90%',
+    sidebarPrimary: '190 100% 50%',
+    sidebarPrimaryForeground: '0 0% 0%',
+    sidebarAccent: '0 0% 10%',
+    sidebarAccentForeground: '0 0% 90%',
+    sidebarBorder: '0 0% 15%',
+    sidebarRing: '190 100% 50%',
+  },
+  syntax: {
+    syntax: '190 100% 50%',
+    heading: '0 0% 100%',
+    bold: '0 0% 100%',
+    italic: '0 0% 85%',
+    strike: '0 0% 50%',
+    link: '190 100% 60%',
+    code: '50 100% 60%',
+    codeBlock: '0 0% 90%',
+    codeLang: '190 100% 50%',
+  },
+};
+
+// Midnight Forest
+const midnightForest: ColorTheme = {
+  id: 'midnight-forest',
+  name: 'Midnight Forest',
+  description: 'Tema gelap dengan nuansa hutan',
+  isDark: true,
+  preview: {
+    bg: '#0d1f22',
+    fg: '#a8d5ba',
+    accent: '#5cdb95',
+  },
+  colors: {
+    background: '170 38% 9%',
+    foreground: '140 35% 74%',
+    card: '170 35% 11%',
+    cardForeground: '140 35% 74%',
+    popover: '170 35% 11%',
+    popoverForeground: '140 35% 74%',
+    primary: '153 64% 61%',
+    primaryForeground: '170 38% 8%',
+    secondary: '170 30% 15%',
+    secondaryForeground: '140 35% 80%',
+    muted: '170 28% 18%',
+    mutedForeground: '140 25% 55%',
+    accent: '153 64% 61%',
+    accentForeground: '170 38% 8%',
+    destructive: '0 70% 55%',
+    destructiveForeground: '170 38% 98%',
+    border: '170 25% 20%',
+    input: '170 25% 20%',
+    ring: '153 64% 61%',
+    editorBg: '170 38% 9%',
+    editorText: '140 35% 80%',
+    editorPlaceholder: '140 25% 45%',
+    editorSelection: '153 50% 30%',
+    editorSelectionText: '140 35% 95%',
+    editorCursor: '153 64% 61%',
+    menuBg: '170 32% 13%',
+    menuShadow: '0 0% 0%',
+    sidebarBackground: '170 35% 11%',
+    sidebarForeground: '140 35% 75%',
+    sidebarPrimary: '153 64% 61%',
+    sidebarPrimaryForeground: '170 38% 8%',
+    sidebarAccent: '170 30% 15%',
+    sidebarAccentForeground: '140 35% 80%',
+    sidebarBorder: '170 25% 20%',
+    sidebarRing: '153 64% 61%',
+  },
+  syntax: {
+    syntax: '153 64% 61%',
+    heading: '140 35% 90%',
+    bold: '140 35% 88%',
+    italic: '180 60% 70%',
+    strike: '140 25% 50%',
+    link: '199 80% 65%',
+    code: '60 70% 60%',
+    codeBlock: '140 35% 75%',
+    codeLang: '199 80% 65%',
+  },
+};
+
+// Nordic Minimalist (Clean & Efficient)
+const nordicMinimalist: ColorTheme = {
+  id: 'nordic-minimalist',
+  name: 'Nordic Minimalist',
+  description: 'Tema terang bersih dan efisien',
+  isDark: false,
+  preview: {
+    bg: '#ffffff',
+    fg: '#1a1a1a',
+    accent: '#3b82f6',
+  },
+  colors: {
+    background: '0 0% 100%',
+    foreground: '0 0% 10%',
+    card: '220 14% 96%',
+    cardForeground: '0 0% 10%',
+    popover: '0 0% 100%',
+    popoverForeground: '0 0% 10%',
+    primary: '217 91% 60%',
+    primaryForeground: '0 0% 100%',
+    secondary: '220 14% 96%',
+    secondaryForeground: '0 0% 15%',
+    muted: '220 14% 96%',
+    mutedForeground: '0 0% 40%',
+    accent: '217 91% 60%',
+    accentForeground: '0 0% 100%',
+    destructive: '0 84% 60%',
+    destructiveForeground: '0 0% 100%',
+    border: '220 13% 91%',
+    input: '220 13% 91%',
+    ring: '217 91% 60%',
+    editorBg: '0 0% 100%',
+    editorText: '0 0% 10%',
+    editorPlaceholder: '0 0% 50%',
+    editorSelection: '217 80% 85%',
+    editorSelectionText: '0 0% 5%',
+    editorCursor: '217 91% 60%',
+    menuBg: '0 0% 99%',
+    menuShadow: '0 0% 20%',
+    sidebarBackground: '220 14% 96%',
+    sidebarForeground: '0 0% 15%',
+    sidebarPrimary: '217 91% 60%',
+    sidebarPrimaryForeground: '0 0% 100%',
+    sidebarAccent: '220 14% 93%',
+    sidebarAccentForeground: '0 0% 15%',
+    sidebarBorder: '220 13% 91%',
+    sidebarRing: '217 91% 60%',
+  },
+  syntax: {
+    syntax: '217 91% 60%',       // Blue for markers
+    heading: '262 83% 58%',      // Purple for headings
+    bold: '330 80% 55%',         // Pink for bold
+    italic: '160 70% 40%',       // Teal for italic
+    strike: '0 0% 55%',          // Muted for strike
+    link: '217 91% 55%',         // Blue for links
+    code: '10 80% 55%',          // Orange for inline code
+    codeBlock: '0 0% 20%',       // Dark text for code block
+    codeLang: '180 70% 45%',     // Cyan for lang
+  },
+};
+
+// Vintage Paper (Classic & Nostalgic)
+const vintagePaper: ColorTheme = {
+  id: 'vintage-paper',
+  name: 'Vintage Paper',
+  description: 'Tema klasik dengan nuansa nostalgia',
+  isDark: false,
+  preview: {
+    bg: '#f4ecd8',
+    fg: '#333333',
+    accent: '#8b0000',
+  },
+  colors: {
+    background: '43 50% 90%',
+    foreground: '0 0% 20%',
+    card: '43 40% 86%',
+    cardForeground: '0 0% 20%',
+    popover: '43 50% 90%',
+    popoverForeground: '0 0% 20%',
+    primary: '0 100% 27%',
+    primaryForeground: '43 50% 95%',
+    secondary: '43 35% 83%',
+    secondaryForeground: '0 0% 25%',
+    muted: '43 30% 85%',
+    mutedForeground: '0 0% 40%',
+    accent: '0 100% 27%',
+    accentForeground: '43 50% 95%',
+    destructive: '0 84% 40%',
+    destructiveForeground: '43 50% 95%',
+    border: '43 25% 78%',
+    input: '43 25% 78%',
+    ring: '0 100% 27%',
+    editorBg: '43 50% 90%',
+    editorText: '0 0% 20%',
+    editorPlaceholder: '0 0% 50%',
+    editorSelection: '0 70% 85%',
+    editorSelectionText: '0 0% 15%',
+    editorCursor: '0 100% 27%',
+    menuBg: '43 45% 88%',
+    menuShadow: '0 0% 30%',
+    sidebarBackground: '43 40% 86%',
+    sidebarForeground: '0 0% 25%',
+    sidebarPrimary: '0 100% 27%',
+    sidebarPrimaryForeground: '43 50% 95%',
+    sidebarAccent: '43 35% 82%',
+    sidebarAccentForeground: '0 0% 25%',
+    sidebarBorder: '43 25% 78%',
+    sidebarRing: '0 100% 27%',
+  },
+  syntax: {
+    syntax: '0 100% 35%',        // Dark red for markers
+    heading: '25 80% 45%',       // Warm brown for headings
+    bold: '0 100% 35%',          // Red for bold
+    italic: '200 70% 40%',       // Blue for italic
+    strike: '0 0% 55%',          // Muted for strike
+    link: '210 100% 40%',        // Blue for links
+    code: '280 60% 45%',         // Purple for inline code
+    codeBlock: '0 0% 25%',       // Dark text for code block
+    codeLang: '160 60% 35%',     // Teal for lang
+  },
+};
+
+// Retro Terminal (Classic Hacker)
+const retroTerminal: ColorTheme = {
+  id: 'retro-terminal',
+  name: 'Retro Terminal',
+  description: 'Tema klasik hacker dengan nuansa terminal',
+  isDark: true,
+  preview: {
+    bg: '#000000',
+    fg: '#00ff00',
+    accent: '#008800',
+  },
+  colors: {
+    background: '0 0% 0%',
+    foreground: '120 100% 50%',
+    card: '0 0% 7%',
+    cardForeground: '120 100% 50%',
+    popover: '0 0% 7%',
+    popoverForeground: '120 100% 50%',
+    primary: '120 100% 27%',
+    primaryForeground: '120 100% 90%',
+    secondary: '0 0% 7%',
+    secondaryForeground: '120 80% 60%',
+    muted: '0 0% 10%',
+    mutedForeground: '120 50% 40%',
+    accent: '120 100% 27%',
+    accentForeground: '120 100% 90%',
+    destructive: '0 100% 50%',
+    destructiveForeground: '0 0% 100%',
+    border: '120 50% 15%',
+    input: '120 50% 15%',
+    ring: '120 100% 50%',
+    editorBg: '0 0% 0%',
+    editorText: '120 100% 50%',
+    editorPlaceholder: '120 50% 30%',
+    editorSelection: '120 60% 20%',
+    editorSelectionText: '120 100% 80%',
+    editorCursor: '120 100% 50%',
+    menuBg: '0 0% 5%',
+    menuShadow: '0 0% 0%',
+    sidebarBackground: '0 0% 7%',
+    sidebarForeground: '120 80% 55%',
+    sidebarPrimary: '120 100% 40%',
+    sidebarPrimaryForeground: '0 0% 0%',
+    sidebarAccent: '0 0% 10%',
+    sidebarAccentForeground: '120 80% 60%',
+    sidebarBorder: '120 50% 15%',
+    sidebarRing: '120 100% 50%',
+  },
+  syntax: {
+    syntax: '120 100% 35%',
+    heading: '120 100% 60%',
+    bold: '120 100% 55%',
+    italic: '120 80% 45%',
+    strike: '120 50% 35%',
+    link: '180 100% 50%',
+    code: '60 100% 50%',
+    codeBlock: '120 100% 45%',
+    codeLang: '180 100% 50%',
+  },
+};
+
+// Steel Blue (Cool & Focus)
+const steelBlue: ColorTheme = {
+  id: 'steel-blue',
+  name: 'Steel Blue',
+  description: 'Tema terang dingin untuk fokus',
+  isDark: false,
+  preview: {
+    bg: '#f8fafc',
+    fg: '#334155',
+    accent: '#475569',
+  },
+  colors: {
+    background: '210 40% 98%',
+    foreground: '215 16% 27%',
+    card: '210 40% 96%',
+    cardForeground: '215 16% 27%',
+    popover: '210 40% 98%',
+    popoverForeground: '215 16% 27%',
+    primary: '215 14% 34%',
+    primaryForeground: '210 40% 98%',
+    secondary: '210 40% 96%',
+    secondaryForeground: '215 16% 30%',
+    muted: '210 40% 96%',
+    mutedForeground: '215 14% 46%',
+    accent: '215 14% 34%',
+    accentForeground: '210 40% 98%',
+    destructive: '0 84% 60%',
+    destructiveForeground: '0 0% 100%',
+    border: '214 32% 91%',
+    input: '214 32% 91%',
+    ring: '215 14% 34%',
+    editorBg: '210 40% 98%',
+    editorText: '215 16% 22%',
+    editorPlaceholder: '215 14% 55%',
+    editorSelection: '215 30% 85%',
+    editorSelectionText: '215 16% 15%',
+    editorCursor: '215 14% 34%',
+    menuBg: '210 40% 97%',
+    menuShadow: '215 16% 35%',
+    sidebarBackground: '210 40% 96%',
+    sidebarForeground: '215 16% 30%',
+    sidebarPrimary: '215 14% 34%',
+    sidebarPrimaryForeground: '210 40% 98%',
+    sidebarAccent: '210 40% 93%',
+    sidebarAccentForeground: '215 16% 30%',
+    sidebarBorder: '214 32% 91%',
+    sidebarRing: '215 14% 34%',
+  },
+  syntax: {
+    syntax: '215 25% 45%',       // Steel for markers
+    heading: '250 60% 50%',      // Purple for headings
+    bold: '330 70% 50%',         // Pink for bold
+    italic: '170 60% 40%',       // Teal for italic
+    strike: '215 14% 55%',       // Muted for strike
+    link: '199 89% 45%',         // Cyan for links
+    code: '20 80% 50%',          // Orange for inline code
+    codeBlock: '215 16% 25%',    // Dark text for code block
+    codeLang: '180 60% 45%',     // Cyan for lang
+  },
 };
 
 /**
@@ -682,11 +1264,18 @@ const catppuccinLatte: ColorTheme = {
 export const COLOR_THEMES: ColorTheme[] = [
   defaultLight,
   defaultDark,
+  nordicMinimalist,
+  steelBlue,
+  vintagePaper,
   gruvboxLight,
   gruvboxDark,
   nordLight,
   nordDark,
   dracula,
+  nightOwl,
+  pureBlack,
+  midnightForest,
+  retroTerminal,
   solarizedLight,
   solarizedDark,
   tokyoNight,
@@ -754,6 +1343,17 @@ export const applyTheme = (theme: ColorTheme): void => {
   root.style.setProperty('--sidebar-accent-foreground', theme.colors.sidebarAccentForeground);
   root.style.setProperty('--sidebar-border', theme.colors.sidebarBorder);
   root.style.setProperty('--sidebar-ring', theme.colors.sidebarRing);
+
+  // Set syntax highlighting variables
+  root.style.setProperty('--syntax-marker', theme.syntax.syntax);
+  root.style.setProperty('--syntax-heading', theme.syntax.heading);
+  root.style.setProperty('--syntax-bold', theme.syntax.bold);
+  root.style.setProperty('--syntax-italic', theme.syntax.italic);
+  root.style.setProperty('--syntax-strike', theme.syntax.strike);
+  root.style.setProperty('--syntax-link', theme.syntax.link);
+  root.style.setProperty('--syntax-code', theme.syntax.code);
+  root.style.setProperty('--syntax-code-block', theme.syntax.codeBlock);
+  root.style.setProperty('--syntax-code-lang', theme.syntax.codeLang);
 
   // Toggle dark class based on theme
   root.classList.toggle('dark', theme.isDark);
