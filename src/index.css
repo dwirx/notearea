@@ -169,6 +169,12 @@
       line-height: 1.75;
       letter-spacing: 0.01em;
     }
+
+    /* Increase touch targets for mobile */
+    button, a, input[type="checkbox"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 
   /* Small Mobile */
@@ -256,10 +262,25 @@
   /* Floating menu styling */
   .floating-menu {
     background: hsl(var(--menu-bg));
-    box-shadow: 
+    box-shadow:
       0 8px 16px -4px hsl(var(--menu-shadow) / 0.12),
       0 4px 8px -4px hsl(var(--menu-shadow) / 0.08),
       0 0 0 1px hsl(var(--border) / 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .floating-menu:active {
+    transform: scale(0.98);
+  }
+
+  /* Better button touch targets for mobile */
+  @media (max-width: 767px) {
+    .floating-menu button,
+    .floating-menu [role="menuitem"] {
+      min-height: 44px;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
   }
 
   /* Markdown preview styling */
@@ -936,6 +957,12 @@
       font-size: 16px !important;
       line-height: 1.75;
     }
+
+    /* Optimize scrolling performance */
+    .live-textarea {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
   }
 
   /* Tablet adjustments for live editor */
@@ -944,6 +971,15 @@
     .live-textarea {
       font-size: 1rem;
       line-height: 1.8;
+    }
+  }
+
+  /* Tablet landscape - optimize for wider viewports */
+  @media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .live-highlight,
+    .live-textarea {
+      font-size: 1.125rem;
+      line-height: 1.85;
     }
   }
 }
@@ -1107,6 +1143,26 @@
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out;
   }
+
+  /* Touch optimization utilities */
+  .touch-optimized {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  /* Performance utilities */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Smooth scrolling for all devices */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+  }
 }
 
 @keyframes fadeIn {
@@ -1137,5 +1193,50 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* Responsive improvements for different screen orientations */
+@media (orientation: portrait) {
+  /* Portrait mode optimizations */
+  .markdown-preview,
+  .live-editor-container {
+    max-width: 96% !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  /* Landscape mode on short screens (phones) */
+  .floating-menu {
+    bottom: 0.5rem !important;
+    right: 0.5rem !important;
+  }
+
+  .live-highlight,
+  .live-textarea {
+    padding-top: 1rem !important;
+    padding-bottom: 4rem !important;
+  }
+}
+
+/* High-resolution displays (Retina, etc) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .markdown-preview,
+  .live-highlight,
+  .live-textarea {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Accessibility: Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

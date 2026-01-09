@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Loader2, Check } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { countStats } from '@/lib/compression';
 
 interface StatusBarProps {
@@ -32,7 +32,7 @@ const StatusBar = ({ content, isPreview, isSaved, isSaving, lastSaved }: StatusB
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.3 }}
-      className="fixed bottom-4 left-4 xs:bottom-5 xs:left-5 sm:bottom-6 sm:left-6 md:bottom-8 md:left-8 z-40 flex items-center gap-2 xs:gap-2.5 sm:gap-3 text-[10px] xs:text-[11px] sm:text-xs text-muted-foreground font-sans safe-bottom bg-background/95 backdrop-blur-md px-2.5 py-1.5 xs:px-3 xs:py-2 sm:px-4 sm:py-2.5 rounded-full border border-border/50 shadow-lg"
+      className="fixed bottom-3 left-3 xs:bottom-4 xs:left-4 sm:bottom-5 sm:left-5 md:bottom-6 md:left-6 lg:bottom-8 lg:left-8 z-40 flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 text-[10px] xs:text-[11px] sm:text-xs text-muted-foreground font-sans safe-bottom bg-background/95 backdrop-blur-md px-2 py-1 xs:px-2.5 xs:py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2.5 rounded-full border border-border/50 shadow-lg"
     >
       {/* Word count */}
       <span className="tabular-nums font-medium">{words}</span>

@@ -8,6 +8,27 @@ interface LiveEditorProps {
   placeholder?: string;
 }
 
+type LineTransform = {
+  line: string;
+  delta: number;
+  shiftOffset: number;
+};
+
+const getLineRange = (text: string, start: number, end: number) => {
+  const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+  let lineEnd = text.indexOf('\n', end);
+  if (lineEnd === -1) lineEnd = text.length;
+  return { lineStart, lineEnd };
+};
+
+const splitIndent = (line: string) => {
+  const match = line.match(/^(\s*)(.*)$/);
+  return {
+    indent: match ? match[1] : '',
+    content: match ? match[2] : line,
+  };
+};
+
 // Parse line for styling - returns React elements
 const renderLine = (line: string, lineIndex: number, inCodeBlock: boolean): React.ReactNode => {
   // Inside code block
@@ -254,6 +275,222 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
     setLinkTooltip(null);
   };
 
+  const updateValueAndSelection = useCallback((
+    textarea: HTMLTextAreaElement,
+    nextValue: string,
+    selectionStart: number,
+    selectionEnd: number
+  ) => {
+    onChange(nextValue);
+    requestAnimationFrame(() => {
+      textarea.selectionStart = selectionStart;
+      textarea.selectionEnd = selectionEnd;
+    });
+  }, [onChange]);
+
+  const applyInlineWrap = useCallback((
+    textarea: HTMLTextAreaElement,
+    left: string,
+    right: string = left
+  ) => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = value.slice(start, end);
+    const nextValue = value.slice(0, start) + left + selected + right + value.slice(end);
+    const selectionStart = start + left.length;
+    const selectionEnd = end + left.length;
+    updateValueAndSelection(textarea, nextValue, selectionStart, selectionEnd);
+  }, [value, updateValueAndSelection]);
+
+  const applyLink = useCallback((textarea: HTMLTextAreaElement) => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = value.slice(start, end);
+    const linkText = `[${selected}]()`;
+    const nextValue = value.slice(0, start) + linkText + value.slice(end);
+    const selectionStart = start + 1;
+    const selectionEnd = start + 1 + selected.length;
+    updateValueAndSelection(textarea, nextValue, selectionStart, selectionEnd);
+  }, [value, updateValueAndSelection]);
+
+  const applyLineTransform = useCallback((
+    textarea: HTMLTextAreaElement,
+    transformLines: (lines: string[]) => LineTransform[]
+  ) => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const effectiveEnd = end > start && value[end - 1] === '\n' ? end - 1 : end;
+    const { lineStart, lineEnd } = getLineRange(value, start, effectiveEnd);
+    const block = value.slice(lineStart, lineEnd);
+    const lines = block.split('\n');
+    const transforms = transformLines(lines);
+    const nextBlock = transforms.map((item) => item.line).join('\n');
+
+    const selectionStartInBlock = start - lineStart;
+    const selectionEndInBlock = Math.min(end, lineEnd) - lineStart;
+    let newSelectionStart = selectionStartInBlock;
+    let newSelectionEnd = selectionEndInBlock;
+    let lineOffset = 0;
+
+    transforms.forEach((item, index) => {
+      const shiftPoint = lineOffset + item.shiftOffset;
+      if (selectionStartInBlock >= shiftPoint) newSelectionStart += item.delta;
+      if (selectionEndInBlock >= shiftPoint) newSelectionEnd += item.delta;
+      lineOffset += lines[index].length + 1;
+    });
+
+    const nextValue = value.slice(0, lineStart) + nextBlock + value.slice(lineEnd);
+    const blockLength = nextBlock.length;
+    const selectionStart = lineStart + Math.max(0, Math.min(newSelectionStart, blockLength));
+    const selectionEnd = lineStart + Math.max(0, Math.min(newSelectionEnd, blockLength));
+    updateValueAndSelection(textarea, nextValue, selectionStart, selectionEnd);
+  }, [value, updateValueAndSelection]);
+
+  const toggleBlockquote = useCallback((textarea: HTMLTextAreaElement) => {
+    applyLineTransform(textarea, (lines) => {
+      const nonEmpty = lines.filter((line) => line.trim().length > 0);
+      const shouldRemove = nonEmpty.length > 0 && nonEmpty.every((line) => {
+        const { content } = splitIndent(line);
+        return content.startsWith('> ');
+      });
+
+      return lines.map((line) => {
+        if (!line.trim()) return { line, delta: 0, shiftOffset: 0 };
+        const { indent, content } = splitIndent(line);
+        const hasPrefix = content.startsWith('> ');
+        if (shouldRemove && hasPrefix) {
+          return { line: indent + content.slice(2), delta: -2, shiftOffset: indent.length };
+        }
+        if (!shouldRemove && !hasPrefix) {
+          return { line: indent + '> ' + content, delta: 2, shiftOffset: indent.length };
+        }
+        return { line, delta: 0, shiftOffset: indent.length };
+      });
+    });
+  }, [applyLineTransform]);
+
+  const toggleBulletList = useCallback((textarea: HTMLTextAreaElement) => {
+    applyLineTransform(textarea, (lines) => {
+      const nonEmpty = lines.filter((line) => line.trim().length > 0);
+      const shouldRemove = nonEmpty.length > 0 && nonEmpty.every((line) => {
+        const { content } = splitIndent(line);
+        return /^[-*+]\s/.test(content);
+      });
+
+      return lines.map((line) => {
+        if (!line.trim()) return { line, delta: 0, shiftOffset: 0 };
+        const { indent, content } = splitIndent(line);
+        const match = content.match(/^([-*+])\s/);
+        if (shouldRemove && match) {
+          return { line: indent + content.slice(2), delta: -2, shiftOffset: indent.length };
+        }
+        if (!shouldRemove && !match) {
+          return { line: indent + '- ' + content, delta: 2, shiftOffset: indent.length };
+        }
+        return { line, delta: 0, shiftOffset: indent.length };
+      });
+    });
+  }, [applyLineTransform]);
+
+  const toggleOrderedList = useCallback((textarea: HTMLTextAreaElement) => {
+    applyLineTransform(textarea, (lines) => {
+      const nonEmpty = lines.filter((line) => line.trim().length > 0);
+      const shouldRemove = nonEmpty.length > 0 && nonEmpty.every((line) => {
+        const { content } = splitIndent(line);
+        return /^\d+\.\s/.test(content);
+      });
+
+      let index = 1;
+      return lines.map((line) => {
+        if (!line.trim()) return { line, delta: 0, shiftOffset: 0 };
+        const { indent, content } = splitIndent(line);
+        const match = content.match(/^\d+\.\s/);
+        if (shouldRemove && match) {
+          return { line: indent + content.slice(match[0].length), delta: -match[0].length, shiftOffset: indent.length };
+        }
+        if (shouldRemove) {
+          return { line, delta: 0, shiftOffset: indent.length };
+        }
+        const stripped = match ? content.slice(match[0].length) : content;
+        const prefix = `${index}. `;
+        index += 1;
+        return { line: indent + prefix + stripped, delta: prefix.length - (match ? match[0].length : 0), shiftOffset: indent.length };
+      });
+    });
+  }, [applyLineTransform]);
+
+  const toggleTaskList = useCallback((textarea: HTMLTextAreaElement) => {
+    applyLineTransform(textarea, (lines) => {
+      const nonEmpty = lines.filter((line) => line.trim().length > 0);
+      const shouldRemove = nonEmpty.length > 0 && nonEmpty.every((line) => {
+        const { content } = splitIndent(line);
+        return /^-\s\[( |x|X)\]\s/.test(content);
+      });
+
+      return lines.map((line) => {
+        if (!line.trim()) return { line, delta: 0, shiftOffset: 0 };
+        const { indent, content } = splitIndent(line);
+        const match = content.match(/^-\s\[( |x|X)\]\s/);
+        if (shouldRemove && match) {
+          return { line: indent + content.slice(match[0].length), delta: -match[0].length, shiftOffset: indent.length };
+        }
+        if (!shouldRemove && !match) {
+          return { line: indent + '- [ ] ' + content, delta: 6, shiftOffset: indent.length };
+        }
+        return { line, delta: 0, shiftOffset: indent.length };
+      });
+    });
+  }, [applyLineTransform]);
+
+  const applyHeading = useCallback((textarea: HTMLTextAreaElement, level: number) => {
+    const prefix = `${'#'.repeat(level)} `;
+    applyLineTransform(textarea, (lines) => {
+      const nonEmpty = lines.filter((line) => line.trim().length > 0);
+      const shouldRemove = nonEmpty.length > 0 && nonEmpty.every((line) => {
+        const { content } = splitIndent(line);
+        return content.startsWith(prefix);
+      });
+
+      return lines.map((line) => {
+        if (!line.trim()) return { line, delta: 0, shiftOffset: 0 };
+        const { indent, content } = splitIndent(line);
+        const match = content.match(/^(#{1,6})\s+/);
+        const oldPrefixLength = match ? match[0].length : 0;
+        const stripped = match ? content.slice(match[0].length) : content;
+        if (shouldRemove && content.startsWith(prefix)) {
+          return { line: indent + stripped, delta: -oldPrefixLength, shiftOffset: indent.length };
+        }
+        return { line: indent + prefix + stripped, delta: prefix.length - oldPrefixLength, shiftOffset: indent.length };
+      });
+    });
+  }, [applyLineTransform]);
+
+  const toggleCodeBlock = useCallback((textarea: HTMLTextAreaElement) => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const effectiveEnd = end > start && value[end - 1] === '\n' ? end - 1 : end;
+    const { lineStart, lineEnd } = getLineRange(value, start, effectiveEnd);
+    const block = value.slice(lineStart, lineEnd);
+    const lines = block.split('\n');
+    const hasFences = lines.length >= 2 && lines[0].trim().startsWith('```') && lines[lines.length - 1].trim().startsWith('```');
+
+    if (hasFences) {
+      const inner = lines.slice(1, -1).join('\n');
+      const nextValue = value.slice(0, lineStart) + inner + value.slice(lineEnd);
+      const selectionStart = lineStart;
+      const selectionEnd = lineStart + inner.length;
+      updateValueAndSelection(textarea, nextValue, selectionStart, selectionEnd);
+      return;
+    }
+
+    const prefix = '```\n';
+    const suffix = '\n```';
+    const nextValue = value.slice(0, lineStart) + prefix + block + suffix + value.slice(lineEnd);
+    const selectionStart = lineStart + prefix.length;
+    const selectionEnd = selectionStart + block.length;
+    updateValueAndSelection(textarea, nextValue, selectionStart, selectionEnd);
+  }, [value, updateValueAndSelection]);
+
   const checkForLinkAtCursor = useCallback((textarea: HTMLTextAreaElement) => {
     const pos = textarea.selectionStart;
     const url = findUrlAtPosition(value, pos);
@@ -315,11 +552,87 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
   }, [linkTooltip]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const nativeEvent = e.nativeEvent as KeyboardEvent;
+    if (nativeEvent.isComposing) return;
+
     // Open link with Ctrl/Cmd + Enter when on a link
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && linkTooltip?.url) {
       e.preventDefault();
       handleOpenLink();
       return;
+    }
+
+    const isModKey = e.ctrlKey || e.metaKey;
+    const isAltGraph = typeof e.getModifierState === 'function' && e.getModifierState('AltGraph');
+    const key = e.key.toLowerCase();
+    const textarea = e.currentTarget;
+
+    if (isModKey && !isAltGraph) {
+      if (!e.shiftKey && !e.altKey && key === 'b') {
+        e.preventDefault();
+        applyInlineWrap(textarea, '**');
+        return;
+      }
+
+      if (!e.shiftKey && !e.altKey && key === 'i') {
+        e.preventDefault();
+        applyInlineWrap(textarea, '*');
+        return;
+      }
+
+      if (!e.shiftKey && !e.altKey && key === 'k') {
+        e.preventDefault();
+        applyLink(textarea);
+        return;
+      }
+
+      if (e.shiftKey && !e.altKey && key === 'x') {
+        e.preventDefault();
+        applyInlineWrap(textarea, '~~');
+        return;
+      }
+
+      if (!e.shiftKey && !e.altKey && e.code === 'Backquote') {
+        e.preventDefault();
+        applyInlineWrap(textarea, '`');
+        return;
+      }
+
+      if (e.shiftKey && !e.altKey && e.code === 'Backquote') {
+        e.preventDefault();
+        toggleCodeBlock(textarea);
+        return;
+      }
+
+      if (e.shiftKey && !e.altKey && e.code === 'Digit8') {
+        e.preventDefault();
+        toggleBulletList(textarea);
+        return;
+      }
+
+      if (e.shiftKey && !e.altKey && e.code === 'Digit7') {
+        e.preventDefault();
+        toggleOrderedList(textarea);
+        return;
+      }
+
+      if (e.shiftKey && !e.altKey && e.code === 'Period') {
+        e.preventDefault();
+        toggleBlockquote(textarea);
+        return;
+      }
+
+      if (!e.shiftKey && e.altKey && key === 't') {
+        e.preventDefault();
+        toggleTaskList(textarea);
+        return;
+      }
+
+      if (!e.shiftKey && e.altKey && /^[1-6]$/.test(e.key)) {
+        e.preventDefault();
+        applyHeading(textarea, Number(e.key));
+        return;
+      }
     }
 
     if (e.key === 'Tab') {
@@ -349,11 +662,11 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="w-full min-h-screen min-h-[100dvh] safe-top bg-editor-bg"
     >
-      <div ref={containerRef} className="live-editor-container relative w-full max-w-[95%] xs:max-w-[90%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
+      <div ref={containerRef} className="live-editor-container relative w-full max-w-[96%] xs:max-w-[92%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
         {/* Highlight overlay */}
         <div
           ref={highlightRef}
-          className="live-highlight pointer-events-none whitespace-pre-wrap break-words px-5 py-8 xs:px-6 xs:py-10 sm:px-8 sm:py-12 md:px-12 md:py-16 lg:px-20 lg:py-20 xl:px-24 xl:py-24"
+          className="live-highlight pointer-events-none whitespace-pre-wrap break-words px-4 py-6 xs:px-6 xs:py-8 sm:px-8 sm:py-10 md:px-12 md:py-14 lg:px-16 lg:py-16 xl:px-20 xl:py-20 2xl:px-24 2xl:py-24"
           aria-hidden="true"
         >
           {value ? processContent(value) : <span className="md-placeholder">{placeholder}</span>}
@@ -369,7 +682,7 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
           onClick={handleClick}
           onScroll={syncScroll}
           placeholder=""
-          className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent px-5 py-8 xs:px-6 xs:py-10 sm:px-8 sm:py-12 md:px-12 md:py-16 lg:px-20 lg:py-20 xl:px-24 xl:py-24 pb-24 xs:pb-28 sm:pb-32"
+          className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent px-4 py-6 xs:px-6 xs:py-8 sm:px-8 sm:py-10 md:px-12 md:py-14 lg:px-16 lg:py-16 xl:px-20 xl:py-20 2xl:px-24 2xl:py-24 pb-20 xs:pb-24 sm:pb-28 md:pb-32"
           spellCheck={false}
           autoComplete="off"
           autoCapitalize="sentences"

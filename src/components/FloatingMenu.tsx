@@ -16,6 +16,7 @@ import {
   FolderOpen,
   Upload,
   DatabaseBackup,
+  Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { compressText } from '@/lib/compression';
 
 interface FloatingMenuProps {
@@ -46,6 +54,56 @@ interface FloatingMenuProps {
   onImportBackup: (file: File) => void;
 }
 
+const shortcutSections = [
+  {
+    title: 'Markdown',
+    subtitle: 'Formatting dasar',
+    items: [
+      { label: 'Bold', keys: ['Ctrl/Cmd', 'B'] },
+      { label: 'Italic', keys: ['Ctrl/Cmd', 'I'] },
+      { label: 'Strikethrough', keys: ['Ctrl/Cmd', 'Shift', 'X'] },
+      { label: 'Inline Code', keys: ['Ctrl/Cmd', '`'] },
+      { label: 'Code Block', keys: ['Ctrl/Cmd', 'Shift', '`'] },
+      { label: 'Link', keys: ['Ctrl/Cmd', 'K'] },
+    ],
+  },
+  {
+    title: 'Heading & List',
+    subtitle: 'Struktur dokumen',
+    items: [
+      { label: 'Heading 1-6', keys: ['Ctrl/Cmd', 'Alt/Option', '1-6'] },
+      { label: 'Bullet List', keys: ['Ctrl/Cmd', 'Shift', '8'] },
+      { label: 'Ordered List', keys: ['Ctrl/Cmd', 'Shift', '7'] },
+      { label: 'Task List', keys: ['Ctrl/Cmd', 'Alt/Option', 'T'] },
+      { label: 'Blockquote', keys: ['Ctrl/Cmd', 'Shift', '.'] },
+    ],
+  },
+  {
+    title: 'Editor & Link',
+    subtitle: 'Navigasi cepat',
+    items: [
+      { label: 'Buka link (kursor di link)', keys: ['Ctrl/Cmd', 'Enter'] },
+      { label: 'Buka link (Ctrl/Cmd + Click)', keys: ['Ctrl/Cmd', 'Click'] },
+      { label: 'Indent (2 spasi)', keys: ['Tab'] },
+    ],
+  },
+  {
+    title: 'Pratinjau Gambar',
+    subtitle: 'Lightbox',
+    items: [
+      { label: 'Tutup', keys: ['Esc'] },
+      { label: 'Zoom in/out', keys: ['+/-'] },
+      { label: 'Rotate', keys: ['R'] },
+      { label: 'Reset', keys: ['0'] },
+    ],
+  },
+];
+
+const shortcutNotes = [
+  'Ctrl = Windows/Linux, Cmd = macOS',
+  'Alt/Option untuk heading & task list',
+];
+
 const FloatingMenu = ({
   onNew,
   onShare,
@@ -66,6 +124,7 @@ const FloatingMenu = ({
 }: FloatingMenuProps) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
+  const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -139,16 +198,16 @@ const FloatingMenu = ({
         <DropdownMenuTrigger asChild>
           <Button
             size="lg"
-            className="floating-menu h-12 w-12 xs:h-13 xs:w-13 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-full shadow-xl hover:shadow-2xl active:scale-95 transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 touch-manipulation ring-2 ring-primary/20"
+            className="floating-menu h-11 w-11 xs:h-12 xs:w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-full shadow-xl hover:shadow-2xl active:scale-95 transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 touch-manipulation ring-2 ring-primary/20"
           >
-            <MoreVertical className="h-5 w-5 xs:h-5.5 xs:w-5.5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
+            <MoreVertical className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
           side="top"
           sideOffset={14}
-          className="floating-menu w-52 xs:w-56 sm:w-60 md:w-64 rounded-2xl p-2 xs:p-2.5 sm:p-3"
+          className="floating-menu w-56 xs:w-60 sm:w-64 md:w-72 rounded-2xl p-2 xs:p-2.5 sm:p-3"
         >
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -202,6 +261,14 @@ const FloatingMenu = ({
                   <span>Pratinjau</span>
                 </>
               )}
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => setIsShortcutHelpOpen(true)}
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
+            >
+              <Keyboard className="h-4 w-4" />
+              <span>Bantuan Shortcut</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator className="my-1.5 sm:my-2" />
@@ -349,6 +416,71 @@ const FloatingMenu = ({
           </motion.div>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <Dialog open={isShortcutHelpOpen} onOpenChange={setIsShortcutHelpOpen}>
+        <DialogContent className="max-h-[85vh] w-[95vw] max-w-2xl rounded-2xl border border-border/70 bg-card/95 p-0 shadow-2xl backdrop-blur">
+          <div className="rounded-t-2xl border-b border-border/60 bg-gradient-to-br from-primary/10 via-background to-background px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <Keyboard className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold text-foreground">
+                  Bantuan Shortcut
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Tips cepat untuk formatting, daftar, dan navigasi.
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <ScrollArea className="max-h-[65vh]">
+            <div className="grid gap-4 px-5 py-4 sm:grid-cols-2 sm:gap-5 sm:px-6">
+              {shortcutSections.map((section) => (
+                <div
+                  key={section.title}
+                  className="rounded-2xl border border-border/60 bg-background/70 p-4 shadow-sm"
+                >
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-foreground">{section.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{section.subtitle}</p>
+                  </div>
+                  <div className="space-y-2">
+                    {section.items.map((item) => (
+                      <div key={item.label} className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-foreground/90">{item.label}</span>
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          {item.keys.map((key) => (
+                            <kbd
+                              key={`${item.label}-${key}`}
+                              className="rounded-md border border-border/80 bg-muted/60 px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"
+                            >
+                              {key}
+                            </kbd>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/40 px-5 py-3 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex flex-wrap gap-3">
+              {shortcutNotes.map((note) => (
+                <span key={note} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                  {note}
+                </span>
+              ))}
+            </div>
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">Tip: pilih teks dulu agar auto-wrap</span>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
