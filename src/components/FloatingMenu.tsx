@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MoreVertical,
   FileText,
-  Share2,
   Download,
   QrCode,
   Eye,
@@ -49,12 +48,28 @@ const FloatingMenu = ({
 
   const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Try native share first on mobile
+      if (navigator.share) {
+        await navigator.share({
+          title: document.title,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
       onShare();
     } catch (error) {
-      console.error('Failed to copy:', error);
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        onShare();
+      } catch (clipError) {
+        console.error('Failed to share:', clipError);
+      }
     }
   };
 
@@ -63,22 +78,22 @@ const FloatingMenu = ({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, delay: 0.2 }}
-      className="fixed bottom-6 right-6 z-50"
+      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 safe-bottom"
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             size="lg"
-            className="floating-menu h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-primary text-primary-foreground hover:bg-primary/90"
+            className="floating-menu h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all bg-primary text-primary-foreground hover:bg-primary/90 touch-manipulation"
           >
-            <MoreVertical className="h-6 w-6" />
+            <MoreVertical className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
           side="top"
           sideOffset={12}
-          className="floating-menu w-56 rounded-xl p-2"
+          className="floating-menu w-52 sm:w-56 rounded-xl p-1.5 sm:p-2"
         >
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -87,7 +102,7 @@ const FloatingMenu = ({
           >
             <DropdownMenuItem
               onClick={onNew}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               <FileText className="h-4 w-4" />
               <span>Dokumen Baru</span>
@@ -95,7 +110,7 @@ const FloatingMenu = ({
 
             <DropdownMenuItem
               onClick={onTogglePreview}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               {isPreview ? (
                 <>
@@ -110,11 +125,11 @@ const FloatingMenu = ({
               )}
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuSeparator className="my-1.5 sm:my-2" />
 
             <DropdownMenuItem
               onClick={handleShare}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               <AnimatePresence mode="wait">
                 {copied ? (
@@ -137,7 +152,7 @@ const FloatingMenu = ({
                     className="flex items-center gap-3"
                   >
                     <Copy className="h-4 w-4" />
-                    <span>Salin Link</span>
+                    <span>Bagikan</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -145,17 +160,17 @@ const FloatingMenu = ({
 
             <DropdownMenuItem
               onClick={onShowQR}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               <QrCode className="h-4 w-4" />
               <span>Kode QR</span>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuSeparator className="my-1.5 sm:my-2" />
 
             <DropdownMenuItem
               onClick={onDownloadHtml}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               <Download className="h-4 w-4" />
               <span>Unduh HTML</span>
@@ -163,17 +178,17 @@ const FloatingMenu = ({
 
             <DropdownMenuItem
               onClick={onDownloadText}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               <Download className="h-4 w-4" />
               <span>Unduh TXT</span>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="my-2" />
+            <DropdownMenuSeparator className="my-1.5 sm:my-2" />
 
             <DropdownMenuItem
               onClick={onToggleTheme}
-              className="flex items-center gap-3 py-3 px-3 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
               {isDark ? (
                 <>
