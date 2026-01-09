@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
-import LiveEditor from '@/components/LiveEditor';
-import MarkdownPreview from '@/components/MarkdownPreview';
+import { motion, AnimatePresence } from 'framer-motion';
+import SplitView, { ViewMode } from '@/components/SplitView';
 import FloatingMenu from '@/components/FloatingMenu';
 import StatusBar from '@/components/StatusBar';
 import QRModal from '@/components/QRModal';
 import DocumentsSidebar from '@/components/DocumentsSidebar';
+import FormattingToolbar from '@/components/FormattingToolbar';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useTheme } from '@/hooks/useTheme';
+import { useEditorCommands } from '@/hooks/useEditorCommands';
 import { toast } from 'sonner';
 import { compressText, decompressText } from '@/lib/compression';
 import { parseMarkdown } from '@/lib/markdown';
@@ -15,7 +16,9 @@ import { parseMarkdown } from '@/lib/markdown';
 const AUTO_SAVE_DELAY = 1500; // 1.5 seconds
 
 const Index = () => {
-  const [isPreview, setIsPreview] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('editor');
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [content, setContent] = useState('');
@@ -23,6 +26,7 @@ const Index = () => {
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const hasUnsavedChanges = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     documents,
@@ -36,6 +40,13 @@ const Index = () => {
   } = useDocuments();
 
   const { isDark, toggleTheme } = useTheme();
+
+  // Editor commands for formatting toolbar
+  const { handleFormat } = useEditorCommands({
+    value: content,
+    onChange: setContent,
+    textareaRef,
+  });
 
   // Load content from URL hash on initial load
   useEffect(() => {
@@ -162,7 +173,7 @@ const Index = () => {
 
     setContent('');
     setCurrentDocId(null);
-    setIsPreview(false);
+    setViewMode('editor');
     setLastSaved(null);
     hasUnsavedChanges.current = false;
     window.history.replaceState(null, '', window.location.pathname);
@@ -180,7 +191,7 @@ const Index = () => {
     if (doc) {
       setCurrentDocId(id);
       setContent(doc.content);
-      setIsPreview(false);
+      setViewMode('editor');
       setLastSaved(doc.updatedAt);
       hasUnsavedChanges.current = false;
       
@@ -209,9 +220,20 @@ const Index = () => {
     toast.success('Link tersalin ke clipboard!');
   };
 
-  const togglePreview = () => {
-    setIsPreview(!isPreview);
-  };
+  // Toggle Zen Mode
+  const toggleZenMode = useCallback(() => {
+    setIsZenMode(prev => !prev);
+  }, []);
+
+  // Handle editor focus/blur for formatting toolbar
+  const handleEditorFocus = useCallback(() => {
+    setIsEditorFocused(true);
+  }, []);
+
+  const handleEditorBlur = useCallback(() => {
+    // Delay to allow toolbar button clicks to register
+    setTimeout(() => setIsEditorFocused(false), 150);
+  }, []);
 
   // Download handlers
   const handleDownloadHtml = useCallback(() => {
@@ -341,51 +363,69 @@ const Index = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen min-h-[100dvh] bg-editor-bg"
+      className={`min-h-screen min-h-[100dvh] bg-editor-bg ${isZenMode ? 'zen-mode' : ''}`}
     >
       {/* Main Content */}
-      <main>
-        {isPreview ? (
-          <MarkdownPreview content={content} />
-        ) : (
-          <LiveEditor
-            value={content}
-            onChange={handleContentChange}
-            placeholder="# Mulai menulis...
+      <main className={isZenMode ? 'zen-content' : ''}>
+        <SplitView
+          content={content}
+          onChange={handleContentChange}
+          viewMode={viewMode}
+          placeholder="# Mulai menulis...
 
 Ketik apa saja — otomatis tersimpan."
-          />
-        )}
+          onEditorFocus={handleEditorFocus}
+          onEditorBlur={handleEditorBlur}
+          editorRef={textareaRef}
+        />
       </main>
 
-      {/* Status Bar */}
-      <StatusBar 
-        content={content} 
-        isPreview={isPreview}
-        isSaved={!!currentDocId || !!lastSaved}
-        isSaving={isSaving}
-        lastSaved={lastSaved}
+      {/* Formatting Toolbar (Mobile only) */}
+      <FormattingToolbar
+        isVisible={isEditorFocused && viewMode !== 'preview'}
+        onFormat={handleFormat}
       />
 
+      {/* Status Bar */}
+      <AnimatePresence>
+        {(!isZenMode || !isEditorFocused) && (
+          <StatusBar
+            content={content}
+            viewMode={viewMode}
+            isSaved={!!currentDocId || !!lastSaved}
+            isSaving={isSaving}
+            lastSaved={lastSaved}
+            isZenMode={isZenMode}
+            isVisible={!isZenMode || !isEditorFocused}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Floating Menu */}
-      <FloatingMenu
-        onNew={handleNewDocument}
-        onShare={handleShare}
-        onSave={handleSaveDocument}
-        onOpenDocuments={() => setShowSidebar(true)}
-        onDownloadHtml={handleDownloadHtml}
-        onDownloadText={handleDownloadText}
-        onDownloadMarkdown={handleDownloadMarkdown}
-        onShowQR={() => setShowQR(true)}
-        isPreview={isPreview}
-        onTogglePreview={togglePreview}
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
-        content={content}
-        hasDocuments={documents.length > 0}
-        onExportBackup={handleExportBackup}
-        onImportBackup={handleImportBackup}
-      />
+      <AnimatePresence>
+        {(!isZenMode || !isEditorFocused) && (
+          <FloatingMenu
+            onNew={handleNewDocument}
+            onShare={handleShare}
+            onSave={handleSaveDocument}
+            onOpenDocuments={() => setShowSidebar(true)}
+            onDownloadHtml={handleDownloadHtml}
+            onDownloadText={handleDownloadText}
+            onDownloadMarkdown={handleDownloadMarkdown}
+            onShowQR={() => setShowQR(true)}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+            content={content}
+            hasDocuments={documents.length > 0}
+            onExportBackup={handleExportBackup}
+            onImportBackup={handleImportBackup}
+            isZenMode={isZenMode}
+            onToggleZenMode={toggleZenMode}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Documents Sidebar */}
       <DocumentsSidebar

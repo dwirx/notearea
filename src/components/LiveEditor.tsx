@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
 
@@ -6,6 +6,13 @@ interface LiveEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
+}
+
+export interface LiveEditorRef {
+  textarea: HTMLTextAreaElement | null;
+  focus: () => void;
 }
 
 type LineTransform = {
@@ -221,11 +228,17 @@ interface LinkTooltip {
   y: number;
 }
 
-const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveEditorProps) => {
+const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur }, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [linkTooltip, setLinkTooltip] = useState<LinkTooltip | null>(null);
+
+  // Expose ref methods
+  useImperativeHandle(ref, () => ({
+    textarea: textareaRef.current,
+    focus: () => textareaRef.current?.focus(),
+  }), []);
 
   // Sync scroll
   const syncScroll = useCallback(() => {
@@ -687,6 +700,8 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
           autoComplete="off"
           autoCapitalize="sentences"
           autoCorrect="on"
+          onFocus={onFocus}
+          onBlur={onBlur}
           style={{
             caretColor: 'hsl(var(--editor-cursor))',
           }}
@@ -717,6 +732,8 @@ const LiveEditor = ({ value, onChange, placeholder = "Mulai menulis..." }: LiveE
       </div>
     </motion.div>
   );
-};
+});
+
+LiveEditor.displayName = 'LiveEditor';
 
 export default LiveEditor;

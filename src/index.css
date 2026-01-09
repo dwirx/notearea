@@ -1298,3 +1298,36 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Zen/Focus Mode Styles */
+.zen-mode {
+  transition: all 0.3s ease-in-out;
+}
+
+.zen-mode .zen-content {
+  max-width: 100%;
+}
+
+.zen-mode .live-editor-container {
+  max-width: 48rem; /* Narrower for focus */
+  margin: 0 auto;
+}
+
+.zen-mode .live-textarea,
+.zen-mode .live-highlight {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+/* Zen mode on larger screens */
+@media (min-width: 1024px) {
+  .zen-mode .live-editor-container {
+    max-width: 52rem;
+  }
+
+  .zen-mode .live-textarea,
+  .zen-mode .live-highlight {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}

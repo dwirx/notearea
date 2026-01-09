@@ -17,6 +17,8 @@ import {
   Upload,
   DatabaseBackup,
   Keyboard,
+  Columns,
+  Maximize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { compressText } from '@/lib/compression';
+import { ViewMode } from './SplitView';
 
 interface FloatingMenuProps {
   onNew: () => void;
@@ -44,14 +47,17 @@ interface FloatingMenuProps {
   onDownloadText: () => void;
   onDownloadMarkdown: () => void;
   onShowQR: () => void;
-  isPreview: boolean;
-  onTogglePreview: () => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
   isDark: boolean;
   onToggleTheme: () => void;
   content: string;
   hasDocuments: boolean;
   onExportBackup: () => void;
   onImportBackup: (file: File) => void;
+  isZenMode: boolean;
+  onToggleZenMode: () => void;
+  isVisible?: boolean;
 }
 
 const shortcutSections = [
@@ -113,14 +119,17 @@ const FloatingMenu = ({
   onDownloadText,
   onDownloadMarkdown,
   onShowQR,
-  isPreview,
-  onTogglePreview,
+  viewMode,
+  onViewModeChange,
   isDark,
   onToggleTheme,
   content,
   hasDocuments,
   onExportBackup,
   onImportBackup,
+  isZenMode,
+  onToggleZenMode,
+  isVisible = true,
 }: FloatingMenuProps) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -246,11 +255,12 @@ const FloatingMenu = ({
 
             <DropdownMenuSeparator className="my-1.5 sm:my-2" />
 
+            {/* View Mode Options */}
             <DropdownMenuItem
-              onClick={onTogglePreview}
+              onClick={() => onViewModeChange(viewMode === 'editor' ? 'preview' : 'editor')}
               className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
             >
-              {isPreview ? (
+              {viewMode === 'preview' ? (
                 <>
                   <Edit3 className="h-4 w-4" />
                   <span>Mode Edit</span>
@@ -260,6 +270,30 @@ const FloatingMenu = ({
                   <Eye className="h-4 w-4" />
                   <span>Pratinjau</span>
                 </>
+              )}
+            </DropdownMenuItem>
+
+            {/* Split View - only on tablet/desktop */}
+            <DropdownMenuItem
+              onClick={() => onViewModeChange(viewMode === 'split' ? 'editor' : 'split')}
+              className="hidden sm:flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
+            >
+              <Columns className="h-4 w-4" />
+              <span>{viewMode === 'split' ? 'Mode Normal' : 'Split View'}</span>
+              {viewMode === 'split' && (
+                <Check className="h-3 w-3 ml-auto text-primary" />
+              )}
+            </DropdownMenuItem>
+
+            {/* Zen Mode */}
+            <DropdownMenuItem
+              onClick={onToggleZenMode}
+              className="flex items-center gap-3 py-2.5 sm:py-3 px-3 rounded-lg cursor-pointer touch-manipulation"
+            >
+              <Maximize className="h-4 w-4" />
+              <span>Mode Fokus</span>
+              {isZenMode && (
+                <Check className="h-3 w-3 ml-auto text-primary" />
               )}
             </DropdownMenuItem>
 
