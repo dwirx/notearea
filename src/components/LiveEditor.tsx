@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
+import SlashCommandMenu, { useSlashCommand } from './SlashCommandMenu';
 
 interface LiveEditorProps {
   value: string;
@@ -8,6 +9,8 @@ interface LiveEditorProps {
   placeholder?: string;
   onFocus?: () => void;
   onBlur?: () => void;
+  editorStyles?: React.CSSProperties;
+  editorWidthClass?: string;
 }
 
 export interface LiveEditorRef {
@@ -228,11 +231,101 @@ interface LinkTooltip {
   y: number;
 }
 
-const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur }, ref) => {
+const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur, editorStyles, editorWidthClass = "max-w-3xl" }, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [linkTooltip, setLinkTooltip] = useState<LinkTooltip | null>(null);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+
+  // Slash command detection
+  const { isActive: isSlashActive } = useSlashCommand(value, cursorPosition);
+
+  // Update menu visibility based on slash command
+  useEffect(() => {
+    setShowSlashMenu(isSlashActive);
+  }, [isSlashActive]);
+
+  // Calculate menu position based on cursor
+  const updateMenuPosition = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const rect = textarea.getBoundingClientRect();
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 28;
+    const paddingTop = parseFloat(getComputedStyle(textarea).paddingTop) || 32;
+    const paddingLeft = parseFloat(getComputedStyle(textarea).paddingLeft) || 16;
+
+    // Count lines before cursor
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const lines = textBeforeCursor.split('\n');
+    const currentLineIndex = lines.length - 1;
+    const currentLine = lines[currentLineIndex];
+
+    // Approximate character width (monospace assumption)
+    const charWidth = 9.5;
+    const xOffset = Math.min(currentLine.length * charWidth, 200);
+
+    const top = rect.top + paddingTop + (currentLineIndex * lineHeight) - textarea.scrollTop + lineHeight + 5;
+    const left = rect.left + paddingLeft + xOffset;
+
+    setMenuPosition({
+      top: Math.min(top, window.innerHeight - 350),
+      left: Math.min(left, window.innerWidth - 280),
+    });
+  }, [value, cursorPosition]);
+
+  // Update cursor position and menu position
+  const handleSelectionChange = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea && document.activeElement === textarea) {
+      setCursorPosition(textarea.selectionStart);
+      updateMenuPosition();
+    }
+  }, [updateMenuPosition]);
+
+  // Listen for selection changes
+  useEffect(() => {
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, [handleSelectionChange]);
+
+  // Handle slash command insertion
+  const handleSlashInsert = useCallback((template: string, deleteCount: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = cursorPosition - deleteCount;
+    const newValue = value.slice(0, start) + template + value.slice(cursorPosition);
+
+    onChange(newValue);
+
+    // Position cursor appropriately
+    requestAnimationFrame(() => {
+      // For code blocks, position cursor between the fences
+      if (template.includes('```\n\n```')) {
+        const newPos = start + 4; // After the opening ```\n
+        textarea.selectionStart = textarea.selectionEnd = newPos;
+      } else if (template.includes('](')) {
+        // For links/images, position at the URL part
+        const urlStart = start + template.indexOf('](') + 2;
+        textarea.selectionEnd = start + template.indexOf(')');
+        textarea.selectionStart = urlStart;
+      } else {
+        // Default: position at end of template
+        const newPos = start + template.length;
+        textarea.selectionStart = textarea.selectionEnd = newPos;
+      }
+      textarea.focus();
+    });
+  }, [value, cursorPosition, onChange]);
+
+  // Close slash menu
+  const handleCloseSlashMenu = useCallback(() => {
+    setShowSlashMenu(false);
+  }, []);
 
   // Expose ref methods
   useImperativeHandle(ref, () => ({
@@ -675,12 +768,16 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="w-full min-h-screen min-h-[100dvh] safe-top bg-editor-bg flex flex-col"
     >
-      <div ref={containerRef} className="live-editor-container relative flex-1 w-full max-w-[100%] xs:max-w-[96%] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
+      <div ref={containerRef} className={`live-editor-container relative flex-1 w-full mx-auto ${editorWidthClass}`}>
         {/* Highlight overlay */}
         <div
           ref={highlightRef}
-          className="live-highlight pointer-events-none whitespace-pre-wrap break-words px-4 pt-8 pb-6 xs:px-5 xs:pt-10 xs:pb-8 sm:px-8 sm:pt-12 sm:pb-10 md:px-10 md:pt-16 md:pb-14 lg:px-14 lg:pt-20 lg:pb-16 xl:px-18 xl:pt-24 xl:pb-20 2xl:px-24 2xl:pt-28 2xl:pb-24"
+          className="live-highlight pointer-events-none whitespace-pre-wrap break-words"
           aria-hidden="true"
+          style={{
+            ...editorStyles,
+            padding: '2rem 1rem 6rem 1rem',
+          }}
         >
           {value ? processContent(value) : <span className="md-placeholder">{placeholder}</span>}
         </div>
@@ -695,7 +792,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
           onClick={handleClick}
           onScroll={syncScroll}
           placeholder=""
-          className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent px-4 pt-8 pb-6 xs:px-5 xs:pt-10 xs:pb-8 sm:px-8 sm:pt-12 sm:pb-10 md:px-10 md:pt-16 md:pb-14 lg:px-14 lg:pt-20 lg:pb-16 xl:px-18 xl:pt-24 xl:pb-20 2xl:px-24 2xl:pt-28 2xl:pb-24 !pb-24 xs:!pb-28 sm:!pb-32 md:!pb-36"
+          className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent"
           spellCheck={false}
           autoComplete="off"
           autoCapitalize="sentences"
@@ -703,6 +800,8 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
           onFocus={onFocus}
           onBlur={onBlur}
           style={{
+            ...editorStyles,
+            padding: '2rem 1rem 6rem 1rem',
             caretColor: 'hsl(var(--editor-cursor))',
           }}
         />
@@ -729,6 +828,23 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Slash Command Menu */}
+        {showSlashMenu && (
+          <div
+            style={{
+              '--menu-top': `${menuPosition.top}px`,
+              '--menu-left': `${menuPosition.left}px`,
+            } as React.CSSProperties}
+          >
+            <SlashCommandMenu
+              content={value}
+              cursorPosition={cursorPosition}
+              onInsert={handleSlashInsert}
+              onClose={handleCloseSlashMenu}
+            />
+          </div>
+        )}
       </div>
     </motion.div>
   );

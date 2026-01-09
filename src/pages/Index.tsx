@@ -6,9 +6,15 @@ import StatusBar from '@/components/StatusBar';
 import QRModal from '@/components/QRModal';
 import DocumentsSidebar from '@/components/DocumentsSidebar';
 import FormattingToolbar from '@/components/FormattingToolbar';
+import DocumentHeader from '@/components/DocumentHeader';
+import TableOfContents from '@/components/TableOfContents';
+import SearchReplace from '@/components/SearchReplace';
+import SettingsPanel from '@/components/SettingsPanel';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditorCommands } from '@/hooks/useEditorCommands';
+import { useSettings } from '@/hooks/useSettings';
+import { countStats } from '@/lib/compression';
 import { toast } from 'sonner';
 import { compressText, decompressText } from '@/lib/compression';
 import { parseMarkdown } from '@/lib/markdown';
@@ -21,6 +27,9 @@ const Index = () => {
   const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showTOC, setShowTOC] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
@@ -40,6 +49,10 @@ const Index = () => {
   } = useDocuments();
 
   const { isDark, toggleTheme } = useTheme();
+
+  // Settings
+  const { settings, setSetting, resetSettings, getWordCountProgress } = useSettings();
+  const wordCountGoal = getWordCountProgress(countStats(content).words);
 
   // Editor commands for formatting toolbar
   const { handleFormat } = useEditorCommands({
@@ -235,6 +248,35 @@ const Index = () => {
     setTimeout(() => setIsEditorFocused(false), 150);
   }, []);
 
+  // Keyboard shortcut for search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Navigate to position in editor
+  const handleNavigateToPosition = useCallback((position: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.focus();
+    textarea.setSelectionRange(position, position);
+
+    // Scroll to position
+    const textBefore = content.substring(0, position);
+    const lines = textBefore.split('\n').length;
+    const lineHeight = 28; // Approximate line height
+    const scrollTop = Math.max(0, lines * lineHeight - 200);
+    textarea.scrollTop = scrollTop;
+  }, [content]);
+
   // Download handlers
   const handleDownloadHtml = useCallback(() => {
     const html = parseMarkdown(content);
@@ -365,20 +407,63 @@ const Index = () => {
       transition={{ duration: 0.5 }}
       className={`min-h-screen min-h-[100dvh] bg-editor-bg ${isZenMode ? 'zen-mode' : ''}`}
     >
+      {/* Document Header */}
+      {!isZenMode && (
+        <DocumentHeader
+          content={content}
+          isSaving={isSaving}
+          isSaved={!!currentDocId || !!lastSaved}
+          lastSaved={lastSaved}
+          onToggleTOC={() => setShowTOC(!showTOC)}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenSearch={() => setShowSearch(true)}
+          showTOC={showTOC}
+          isZenMode={isZenMode}
+        />
+      )}
+
       {/* Main Content */}
-      <main className={isZenMode ? 'zen-content' : ''}>
+      <main className={`${isZenMode ? 'zen-content' : ''} ${!isZenMode ? 'pt-12 xs:pt-13 sm:pt-14' : ''}`}>
         <SplitView
           content={content}
           onChange={handleContentChange}
           viewMode={viewMode}
           placeholder="# Mulai menulis...
 
-Ketik apa saja — otomatis tersimpan."
+Ketik apa saja — otomatis tersimpan.
+Ketik / untuk opsi insert cepat."
           onEditorFocus={handleEditorFocus}
           onEditorBlur={handleEditorBlur}
           editorRef={textareaRef}
+          settings={settings}
         />
       </main>
+
+      {/* Table of Contents Sidebar */}
+      <TableOfContents
+        content={content}
+        isOpen={showTOC}
+        onClose={() => setShowTOC(false)}
+        onNavigate={handleNavigateToPosition}
+      />
+
+      {/* Search & Replace */}
+      <SearchReplace
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        content={content}
+        onContentChange={handleContentChange}
+        onNavigateToPosition={handleNavigateToPosition}
+      />
+
+      {/* Settings Panel */}
+      <SettingsPanel
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={settings}
+        onSettingChange={setSetting}
+        onReset={resetSettings}
+      />
 
       {/* Formatting Toolbar (Mobile only) */}
       <FormattingToolbar
@@ -397,6 +482,7 @@ Ketik apa saja — otomatis tersimpan."
             lastSaved={lastSaved}
             isZenMode={isZenMode}
             isVisible={!isZenMode || !isEditorFocused}
+            wordCountGoal={wordCountGoal}
           />
         )}
       </AnimatePresence>

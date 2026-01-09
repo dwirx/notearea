@@ -1,7 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Check, Eye, Columns, Maximize } from 'lucide-react';
+import { Loader2, Check, Eye, Columns, Maximize, Target, PartyPopper } from 'lucide-react';
 import { countStats } from '@/lib/compression';
 import { ViewMode } from './SplitView';
+import { useEffect, useState } from 'react';
+
+interface WordCountProgress {
+  current: number;
+  goal: number;
+  progress: number;
+  isComplete: boolean;
+  remaining: number;
+}
 
 interface StatusBarProps {
   content: string;
@@ -11,6 +20,7 @@ interface StatusBarProps {
   lastSaved?: number | null;
   isZenMode?: boolean;
   isVisible?: boolean;
+  wordCountGoal?: WordCountProgress | null;
 }
 
 const formatLastSaved = (timestamp: number): string => {
@@ -33,6 +43,14 @@ const getReadingTime = (words: number): string => {
   return `${minutes} menit`;
 };
 
+// Progress bar colors based on percentage
+const getProgressColor = (progress: number, isComplete: boolean) => {
+  if (isComplete) return 'bg-green-500';
+  if (progress >= 75) return 'bg-amber-500';
+  if (progress >= 50) return 'bg-blue-500';
+  return 'bg-primary';
+};
+
 const StatusBar = ({
   content,
   viewMode,
@@ -40,10 +58,22 @@ const StatusBar = ({
   isSaving,
   lastSaved,
   isZenMode = false,
-  isVisible = true
+  isVisible = true,
+  wordCountGoal,
 }: StatusBarProps) => {
   const { words, chars } = countStats(content);
   const readingTime = getReadingTime(words);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [wasComplete, setWasComplete] = useState(false);
+
+  // Celebration animation when goal is reached
+  useEffect(() => {
+    if (wordCountGoal?.isComplete && !wasComplete) {
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 3000);
+    }
+    setWasComplete(wordCountGoal?.isComplete || false);
+  }, [wordCountGoal?.isComplete, wasComplete]);
 
   // Don't render if in zen mode and not visible
   if (isZenMode && !isVisible) {
@@ -81,6 +111,50 @@ const StatusBar = ({
           <span className="w-0.5 h-0.5 xs:w-1 xs:h-1 rounded-full bg-muted-foreground/30" />
           <span className="text-muted-foreground/70">{readingTime} baca</span>
         </span>
+
+        {/* Word Count Goal Progress */}
+        {wordCountGoal && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-1.5 xs:gap-2"
+          >
+            <span className="w-0.5 h-0.5 xs:w-1 xs:h-1 rounded-full bg-muted-foreground/30" />
+
+            {/* Progress bar */}
+            <div className="flex items-center gap-1.5">
+              <Target className={`h-3 w-3 ${wordCountGoal.isComplete ? 'text-green-500' : 'text-muted-foreground'}`} />
+
+              <div className="relative w-12 xs:w-16 sm:w-20 h-1.5 xs:h-2 bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${wordCountGoal.progress}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className={`absolute inset-y-0 left-0 rounded-full ${getProgressColor(wordCountGoal.progress, wordCountGoal.isComplete)}`}
+                />
+              </div>
+
+              <span className={`tabular-nums font-medium ${wordCountGoal.isComplete ? 'text-green-500' : 'text-foreground/70'}`}>
+                {Math.round(wordCountGoal.progress)}%
+              </span>
+            </div>
+
+            {/* Celebration animation */}
+            <AnimatePresence>
+              {showCelebration && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  exit={{ opacity: 0, scale: 0 }}
+                  transition={{ type: 'spring', damping: 10 }}
+                  className="text-amber-500"
+                >
+                  <PartyPopper className="h-4 w-4" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
 
         {/* Save status with improved animation */}
         <AnimatePresence mode="wait">

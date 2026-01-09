@@ -3,8 +3,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { parseMarkdown } from '@/lib/markdown';
 import ImageLightbox from './ImageLightbox';
 
-interface MarkdownPreviewProps {
+export interface MarkdownPreviewProps {
   content: string;
+  editorStyles?: React.CSSProperties;
 }
 
 interface LightboxState {
@@ -13,7 +14,7 @@ interface LightboxState {
   alt: string;
 }
 
-const MarkdownPreview = ({ content }: MarkdownPreviewProps) => {
+const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
   const html = parseMarkdown(content);
   const containerRef = useRef<HTMLDivElement>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -96,7 +97,10 @@ const MarkdownPreview = ({ content }: MarkdownPreviewProps) => {
 
   if (!content) {
     return (
-      <div className="w-full max-w-[96%] xs:max-w-[92%] sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto px-4 py-6 xs:px-5 xs:py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 text-muted-foreground italic font-serif">
+      <div
+        className="w-full max-w-3xl mx-auto px-4 py-6 xs:px-5 xs:py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 text-muted-foreground italic"
+        style={editorStyles}
+      >
         Tidak ada konten untuk ditampilkan...
       </div>
     );
@@ -109,11 +113,12 @@ const MarkdownPreview = ({ content }: MarkdownPreviewProps) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="markdown-preview w-full max-w-[96%] xs:max-w-[92%] sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl mx-auto px-4 py-6 xs:px-5 xs:py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-16 pb-20 xs:pb-24 sm:pb-28 md:pb-32"
+        className="markdown-preview w-full max-w-3xl mx-auto px-4 py-6 xs:px-5 xs:py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-12 lg:py-14 pb-20 xs:pb-24 sm:pb-28 md:pb-32"
         onClick={handleContainerClick}
         dangerouslySetInnerHTML={{ __html: html }}
+        style={editorStyles}
       />
-      
+
       <ImageLightbox
         src={lightbox.src}
         alt={lightbox.alt}

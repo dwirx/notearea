@@ -1,73 +1,75 @@
-# 📋 Rencana Peningkatan Notearea Markdown Editor
+# 📋 Rencana Peningkatan NoteArea v2.0
 
 ## 🎯 Tujuan
-Meningkatkan pengalaman pengguna (UX) untuk semua device: Desktop, Tablet, dan Mobile dengan fitur-fitur baru yang berguna.
+Meningkatkan aplikasi markdown editor menjadi lebih profesional, fitur lengkap, dan pengalaman pengguna yang lebih baik.
 
 ---
 
-## 📊 Prioritas Implementasi
-
-### ✅ Fase 1: Quick Wins (Implementasi Sekarang)
-
-#### 1.1 Mobile Formatting Toolbar
-- [ ] Buat komponen `FormattingToolbar.tsx`
-- [ ] Tampilkan toolbar di atas keyboard pada mobile
-- [ ] Tombol: Bold, Italic, Heading, List, Link, Code
-- [ ] Animasi slide-up saat focus pada editor
-- [ ] Sembunyikan pada desktop (gunakan keyboard shortcuts)
-
-#### 1.2 Focus/Zen Mode
-- [ ] Tambahkan state `isZenMode` di Index.tsx
-- [ ] Sembunyikan StatusBar dan FloatingMenu saat aktif
-- [ ] Tampilkan UI saat hover di area bawah
-- [ ] Keyboard shortcut: Ctrl/Cmd + Shift + F
-- [ ] Tombol di FloatingMenu untuk toggle
-
-#### 1.3 Split View Mode (Tablet/Desktop)
-- [ ] Tambahkan state `viewMode`: 'editor' | 'preview' | 'split'
-- [ ] Layout grid 2 kolom untuk split view
-- [ ] Toggle button di FloatingMenu
-- [ ] Auto-split pada tablet landscape
-- [ ] Sync scroll antara editor dan preview
-
-#### 1.4 Auto-save Indicator yang Lebih Baik
-- [ ] Perbaiki StatusBar dengan animasi pulse
-- [ ] Warna berbeda untuk setiap status
-- [ ] Tooltip dengan detail waktu tersimpan
+## ✅ Fase 1 (SELESAI)
+- [x] Mobile Formatting Toolbar
+- [x] Focus/Zen Mode
+- [x] Split View Mode
+- [x] Auto-save Indicator yang Lebih Baik
 
 ---
 
-### 📅 Fase 2: Medium Priority (Setelah Fase 1)
+## 🚀 Fase 2: Peningkatan Sekarang
 
-#### 2.1 Table of Contents (ToC)
-- [ ] Parse heading dari konten
-- [ ] Sidebar collapsible untuk ToC
-- [ ] Jump to section saat klik
-- [ ] Highlight section aktif
+### 2.1 Document Header Bar
+**File: `src/components/DocumentHeader.tsx`**
+- Tampilkan judul dokumen dari H1 pertama
+- Indikator status save (saving, saved, error)
+- Tombol quick actions (undo, redo, settings)
+- Responsive untuk semua ukuran layar
 
-#### 2.2 Quick Insert Menu (Slash Commands)
-- [ ] Deteksi "/" di awal baris
-- [ ] Popup menu dengan opsi insert
-- [ ] Insert template untuk table, code, dll
-- [ ] Keyboard navigation
+### 2.2 Table of Contents (TOC) Sidebar
+**File: `src/components/TableOfContents.tsx`**
+- Parse semua heading (H1-H6) dari konten
+- Sidebar collapsible di sebelah kiri
+- Klik untuk navigate ke section
+- Highlight heading yang sedang terlihat
+- Indentasi berdasarkan level heading
+- Toggle button di header
 
-#### 2.3 Word Count Goal & Statistics
-- [ ] Modal statistik dokumen
-- [ ] Set target kata
-- [ ] Progress bar visual
-- [ ] Estimasi waktu baca
+### 2.3 Search & Replace
+**File: `src/components/SearchReplace.tsx`**
+- Modal dengan shortcut Ctrl/Cmd + F
+- Input untuk search dan replace
+- Tombol: Find Next, Replace, Replace All
+- Highlight semua hasil pencarian
+- Case sensitive toggle
+- Match count indicator
 
----
+### 2.4 Word Count Goal
+**File: `src/components/WordCountGoal.tsx`**
+- Set target kata (misal 500, 1000, 2000)
+- Progress bar visual di status bar
+- Warna berubah saat mendekati target
+- Celebratory animation saat tercapai
+- Persist setting di localStorage
 
-### 📅 Fase 3: Advanced Features (Future)
+### 2.5 Slash Commands (Quick Insert)
+**File: `src/components/SlashCommandMenu.tsx`**
+- Ketik "/" di awal baris untuk trigger
+- Menu dropdown dengan opsi:
+  - /h1, /h2, /h3 - Headings
+  - /bullet, /numbered, /task - Lists
+  - /code, /quote - Blocks
+  - /table - Insert table template
+  - /divider - Horizontal rule
+  - /image - Image placeholder
+- Fuzzy search untuk filter
+- Keyboard navigation (arrow, enter, escape)
 
-- [ ] Template System
-- [ ] Search & Replace
-- [ ] PWA Enhancement (Offline Support)
-- [ ] Custom Themes
-- [ ] Export to PDF
-- [ ] Math Support (KaTeX)
-- [ ] Diagram Support (Mermaid)
+### 2.6 Settings Panel
+**File: `src/components/SettingsPanel.tsx`**
+- Font size slider (14px - 24px)
+- Font family selection (Sans, Serif, Mono)
+- Line height adjustment
+- Word count goal setting
+- Auto-save toggle dan interval
+- Theme selection (Light, Dark, System)
+- Export/import settings
 
 ---
 
@@ -76,91 +78,120 @@ Meningkatkan pengalaman pengguna (UX) untuk semua device: Desktop, Tablet, dan M
 ```
 src/
 ├── components/
-│   ├── FormattingToolbar.tsx    ← BARU
-│   ├── SplitView.tsx            ← BARU
-│   ├── TableOfContents.tsx      ← BARU (Fase 2)
-│   ├── QuickInsertMenu.tsx      ← BARU (Fase 2)
-│   ├── FloatingMenu.tsx         ← UPDATE
-│   ├── StatusBar.tsx            ← UPDATE
-│   ├── LiveEditor.tsx           ← UPDATE
+│   ├── DocumentHeader.tsx      ← BARU
+│   ├── TableOfContents.tsx     ← BARU
+│   ├── SearchReplace.tsx       ← BARU
+│   ├── WordCountGoal.tsx       ← BARU
+│   ├── SlashCommandMenu.tsx    ← BARU
+│   ├── SettingsPanel.tsx       ← BARU
+│   ├── FloatingMenu.tsx        ← UPDATE
+│   ├── StatusBar.tsx           ← UPDATE
 │   └── ...
 ├── hooks/
-│   ├── useEditorCommands.ts     ← BARU (refactor dari LiveEditor)
-│   ├── useViewMode.ts           ← BARU
+│   ├── useHeadings.ts          ← BARU (parse headings)
+│   ├── useSearch.ts            ← BARU (search logic)
+│   ├── useSettings.ts          ← BARU (settings state)
 │   └── ...
 └── pages/
-    └── Index.tsx                ← UPDATE
+    └── Index.tsx               ← UPDATE
 ```
 
 ---
 
 ## 🎨 Design Specifications
 
-### Mobile Formatting Toolbar
+### Document Header
 ```
-┌─────────────────────────────────────────────────┐
-│  B  │  I  │  H  │  ─  │  •  │  ☑  │  </>│  ⋯  │
-└─────────────────────────────────────────────────┘
- Bold Italic Head  HR  List Task Code  More
-
-- Height: 48px
-- Background: semi-transparent with blur
-- Position: fixed bottom, above keyboard
-- Animation: slide up on focus
+┌─────────────────────────────────────────────────────────────┐
+│  ≡  │  📄 Judul Dokumen                  │ ↩ ↪ │ ⚙ │ ● Saved │
+└─────────────────────────────────────────────────────────────┘
+ TOC   Title                              Undo Redo Settings Status
 ```
 
-### Split View Layout
+### Table of Contents Sidebar
 ```
-Desktop/Tablet Landscape:
-┌──────────────────────┬──────────────────────┐
-│                      │                      │
-│       EDITOR         │       PREVIEW        │
-│                      │                      │
-│   (50% width)        │    (50% width)       │
-│                      │                      │
-└──────────────────────┴──────────────────────┘
+┌──────────────────┬─────────────────────────────────────────┐
+│                  │                                         │
+│ 📑 Daftar Isi    │                                         │
+│                  │                                         │
+│ • Heading 1      │            EDITOR AREA                  │
+│   ├ Heading 2    │                                         │
+│   ├ Heading 2    │                                         │
+│   │ └ Heading 3  │                                         │
+│   └ Heading 2    │                                         │
+│ • Heading 1      │                                         │
+│                  │                                         │
+└──────────────────┴─────────────────────────────────────────┘
+     240px                      Flexible
+```
 
-Mobile/Portrait: Single view dengan toggle
+### Search & Replace Modal
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      🔍 Cari & Ganti                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Cari:    [________________________] 🔍  3 dari 10         │
+│                                                             │
+│  Ganti:   [________________________]                        │
+│                                                             │
+│  ☐ Case Sensitive   ☐ Whole Word                           │
+│                                                             │
+│        [◀ Prev] [Next ▶] [Replace] [Replace All]           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Zen Mode
+### Slash Command Menu
 ```
-- Semua UI tersembunyi
-- Editor full-screen
-- Hover di bottom 100px → reveal controls
-- Press Escape → exit zen mode
-- Subtle vignette effect (optional)
+Ketik "/" → muncul dropdown:
+┌──────────────────────────┐
+│ /h1    Heading 1         │
+│ /h2    Heading 2         │
+│ /h3    Heading 3         │
+│ ───────────────────────  │
+│ /bullet  Bullet List     │
+│ /number  Numbered List   │
+│ /task    Task List       │
+│ ───────────────────────  │
+│ /code    Code Block      │
+│ /quote   Blockquote      │
+│ /table   Insert Table    │
+│ /hr      Divider         │
+└──────────────────────────┘
+```
+
+### Word Count Goal (di StatusBar)
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 523 kata │ 2,847 karakter │ 3 menit │ ████████░░ 52% │ ✓   │
+└─────────────────────────────────────────────────────────────┘
+                                       Progress bar ke target
 ```
 
 ---
 
-## ⚡ Implementasi Sekarang
+## ⚡ Urutan Implementasi
 
-### Step 1: FormattingToolbar.tsx
-Komponen toolbar formatting untuk mobile dengan tombol-tombol markdown.
-
-### Step 2: Update Index.tsx
-- Tambahkan state untuk viewMode dan zenMode
-- Integrasi FormattingToolbar
-- Integrasi Split View
-
-### Step 3: Update FloatingMenu.tsx
-- Tambahkan opsi Zen Mode
-- Tambahkan opsi Split View (tablet/desktop)
-
-### Step 4: Update StatusBar.tsx
-- Animasi yang lebih baik
-- Indicator status yang lebih jelas
-
-### Step 5: CSS Updates
-- Styling untuk toolbar
-- Styling untuk split view
-- Animasi dan transisi
+1. **DocumentHeader.tsx** - Header dengan judul dan actions
+2. **useHeadings.ts** - Hook untuk parse headings
+3. **TableOfContents.tsx** - TOC sidebar
+4. **useSearch.ts** - Hook untuk search logic
+5. **SearchReplace.tsx** - Search & replace modal
+6. **WordCountGoal.tsx** - Progress ke target
+7. **SlashCommandMenu.tsx** - Quick insert menu
+8. **useSettings.ts** - Settings state management
+9. **SettingsPanel.tsx** - Settings UI
+10. **Update Index.tsx** - Integrasi semua
+11. **Update CSS** - Styling baru
+12. **Testing & Polish**
 
 ---
 
-## 📝 Notes
+## 📝 Notes Implementasi
 - Gunakan Framer Motion untuk animasi
-- Pastikan touch-friendly (min 44px touch targets)
-- Test di berbagai ukuran layar
-- Maintain backward compatibility
+- Pastikan accessible (ARIA labels, keyboard nav)
+- Touch-friendly (min 44px touch targets)
+- Responsive di semua ukuran layar
+- Persist settings di localStorage
+- Debounce untuk search dan parsing headings

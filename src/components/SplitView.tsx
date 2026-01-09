@@ -1,7 +1,8 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import LiveEditor, { LiveEditorRef } from './LiveEditor';
 import MarkdownPreview from './MarkdownPreview';
+import { Settings, getEditorStyles, getEditorWidthClass } from '@/hooks/useSettings';
 
 export type ViewMode = 'editor' | 'preview' | 'split';
 
@@ -13,6 +14,7 @@ interface SplitViewProps {
   onEditorFocus?: () => void;
   onEditorBlur?: () => void;
   editorRef?: React.MutableRefObject<HTMLTextAreaElement | null>;
+  settings?: Settings;
 }
 
 const SplitView = ({
@@ -23,6 +25,7 @@ const SplitView = ({
   onEditorFocus,
   onEditorBlur,
   editorRef,
+  settings,
 }: SplitViewProps) => {
   const liveEditorRef = useRef<LiveEditorRef>(null);
 
@@ -33,8 +36,24 @@ const SplitView = ({
     }
   }, [editorRef, viewMode]);
 
+  // Get editor styles from settings
+  const editorStyles = useMemo(() => {
+    if (!settings) return undefined;
+    return getEditorStyles(settings);
+  }, [settings]);
+
+  // Get editor width class
+  const editorWidthClass = useMemo(() => {
+    if (!settings) return 'max-w-3xl';
+    return getEditorWidthClass(settings.editorWidth);
+  }, [settings?.editorWidth]);
+
   if (viewMode === 'preview') {
-    return <MarkdownPreview content={content} />;
+    return (
+      <div className="min-h-screen min-h-[100dvh] bg-editor-bg">
+        <MarkdownPreview content={content} editorStyles={editorStyles} />
+      </div>
+    );
   }
 
   if (viewMode === 'editor') {
@@ -46,6 +65,8 @@ const SplitView = ({
         placeholder={placeholder}
         onFocus={onEditorFocus}
         onBlur={onEditorBlur}
+        editorStyles={editorStyles}
+        editorWidthClass={editorWidthClass}
       />
     );
   }
@@ -68,18 +89,20 @@ const SplitView = ({
             placeholder={placeholder}
             onFocus={onEditorFocus}
             onBlur={onEditorBlur}
+            editorStyles={editorStyles}
+            editorWidthClass="max-w-full"
           />
         </div>
       </div>
 
       {/* Preview Panel */}
       <div className="w-1/2 h-full overflow-y-auto bg-background">
-        <div className="sticky top-0 z-10 px-4 py-2 bg-muted/50 backdrop-blur-sm border-b border-border/30">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <div className="sticky top-0 z-10 px-4 py-2.5 bg-muted/60 backdrop-blur-md border-b border-border/30">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Pratinjau
           </span>
         </div>
-        <MarkdownPreview content={content} />
+        <MarkdownPreview content={content} editorStyles={editorStyles} />
       </div>
     </motion.div>
   );
