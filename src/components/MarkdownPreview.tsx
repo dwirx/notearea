@@ -129,7 +129,6 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
     if (!containerRef.current) return;
 
     const mermaidElements = containerRef.current.querySelectorAll('.mermaid-diagram:not(.mermaid-rendered):not(.mermaid-error-shown)');
-    console.log('[Mermaid] Found elements in DOM:', mermaidElements.length);
 
     if (mermaidElements.length === 0) return;
 
@@ -153,7 +152,6 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
     // Process diagrams
     const processDiagrams = async () => {
       const elements = Array.from(mermaidElements);
-      console.log('[Mermaid] Processing', elements.length, 'elements');
 
       for (const element of elements) {
         // Get diagram code from base64 encoded data attribute
@@ -161,7 +159,6 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
         const diagramIndex = parseInt(element.getAttribute('data-mermaid-index') || '0', 10);
 
         if (!encodedCode) {
-          console.log('[Mermaid] No encoded diagram code found for element', diagramIndex);
           continue;
         }
 
@@ -169,12 +166,9 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
         let diagramCode: string;
         try {
           diagramCode = decodeURIComponent(escape(atob(encodedCode)));
-        } catch (e) {
-          console.error('[Mermaid] Failed to decode diagram code:', e);
+        } catch {
           continue;
         }
-
-        console.log('[Mermaid] Element', diagramIndex, 'code:', diagramCode.substring(0, 50));
 
         // Skip if already rendered
         if (element.classList.contains('mermaid-rendered') || element.classList.contains('mermaid-error-shown')) {
@@ -208,7 +202,6 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
 
         try {
           const id = `mermaid-${Date.now()}-${diagramIndex}-${Math.random().toString(36).slice(2, 11)}`;
-          console.log('[Mermaid] Rendering diagram', diagramIndex, 'with id:', id);
 
           // Create a temporary visible container for mermaid to render into
           // Mermaid needs the element to be in the DOM and visible for getBBox to work
@@ -226,7 +219,6 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
 
           // Get the rendered SVG from the temp container
           const svg = tempContainer.innerHTML;
-          console.log('[Mermaid] Render success, svg length:', svg.length);
 
           // Clean up temp container
           tempContainer.remove();
@@ -254,7 +246,6 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
           // Store diagram code in data attribute for later retrieval (fullscreen view)
           element.setAttribute('data-mermaid-code', encodedCode);
           element.classList.add('mermaid-rendered');
-          console.log('[Mermaid] Element updated with SVG, classList:', element.classList.toString());
 
           // Check if diagram is wider than container (needs scroll)
           requestAnimationFrame(() => {

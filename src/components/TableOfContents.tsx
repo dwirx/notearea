@@ -24,15 +24,32 @@ const createHeadingId = (text: string): string => {
 };
 
 // Navigate to heading in preview mode
-const scrollToHeading = (headingText: string) => {
+const scrollToHeading = (headingText: string): boolean => {
   const headingId = `heading-${createHeadingId(headingText)}`;
   const element = document.getElementById(headingId);
 
   if (element) {
-    element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
+    // Get the scrollable container (markdown-preview or ScrollSyncPane)
+    const scrollContainer = element.closest('.overflow-y-auto') ||
+                           element.closest('[data-radix-scroll-area-viewport]') ||
+                           document.querySelector('.markdown-preview')?.parentElement;
+
+    if (scrollContainer) {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      const scrollTop = scrollContainer.scrollTop + (elementRect.top - containerRect.top) - 100;
+
+      scrollContainer.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth'
+      });
+    } else {
+      // Fallback to scrollIntoView
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
 
     // Add highlight effect
     element.classList.add('toc-highlight');
@@ -136,20 +153,18 @@ const TableOfContents = ({
   const headings = useHeadings(content);
 
   const handleNavigate = (heading: Heading) => {
-    // Try to scroll to heading in preview first
-    const scrolled = scrollToHeading(heading.text);
-
-    // Also navigate in editor
+    // Navigate in editor first (always works)
     onNavigate(heading.position);
+
+    // Then try to scroll to heading in preview (works in preview/split mode)
+    // Use setTimeout to allow editor navigation to complete first
+    setTimeout(() => {
+      scrollToHeading(heading.text);
+    }, 50);
 
     // Close on mobile after navigation
     if (window.innerWidth < 1024) {
       onClose();
-    }
-
-    // If not scrolled, the editor navigation will handle it
-    if (!scrolled) {
-      console.log('Heading not found in preview, navigating in editor');
     }
   };
 

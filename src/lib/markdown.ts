@@ -45,14 +45,6 @@ export function parseMarkdown(text: string): string {
 
   let html = text;
 
-  // Debug: Check for mermaid blocks in input
-  const hasMermaid = text.includes('```mermaid');
-  if (hasMermaid) {
-    console.log('[parseMarkdown] Input has mermaid block. Text length:', text.length);
-    // Check line endings
-    console.log('[parseMarkdown] Has CRLF:', text.includes('\r\n'), 'Has LF:', text.includes('\n'));
-  }
-
   // ===== STEP 1: Extract and store special blocks with placeholders =====
   // This prevents them from being corrupted by later processing
 
@@ -70,7 +62,6 @@ export function parseMarkdown(text: string): string {
   // Handle both LF and CRLF line endings
   html = html.replace(/```mermaid\s*[\r\n]+([\s\S]*?)```/g, (_, code) => {
     const trimmedCode = code.trim();
-    console.log('[Markdown] Found mermaid block:', trimmedCode.substring(0, 50));
     if (!trimmedCode) return '';
     mermaidDiagrams.push(trimmedCode);
     const index = mermaidDiagrams.length - 1;
@@ -79,7 +70,6 @@ export function parseMarkdown(text: string): string {
     const encodedCode = btoa(unescape(encodeURIComponent(trimmedCode)));
     const placeholder = `<div class="mermaid-diagram" data-mermaid-index="${index}" data-mermaid-code="${encodedCode}"><div class="mermaid-loading">Memuat diagram...</div></div>`;
     mermaidPlaceholders.push(placeholder);
-    console.log('[Markdown] Created placeholder:', index);
     return `${MERMAID_PLACEHOLDER}${mermaidPlaceholders.length - 1}${MERMAID_PLACEHOLDER}`;
   });
 
@@ -278,9 +268,7 @@ export function parseMarkdown(text: string): string {
 
   // Restore mermaid blocks
   html = html.replace(new RegExp(`${MERMAID_PLACEHOLDER}(\\d+)${MERMAID_PLACEHOLDER}`, 'g'), (_, index) => {
-    const result = mermaidPlaceholders[parseInt(index)] || '';
-    console.log('[parseMarkdown] Restoring mermaid placeholder', index, '-> length:', result.length);
-    return result;
+    return mermaidPlaceholders[parseInt(index)] || '';
   });
 
   // Restore code blocks
@@ -298,12 +286,6 @@ export function parseMarkdown(text: string): string {
   html = html.replace(/(<\/div>)<\/p>/g, '$1');
   html = html.replace(/<p>(<pre>)/g, '$1');
   html = html.replace(/(<\/pre>)<\/p>/g, '$1');
-
-  // Debug: Check final output
-  if (hasMermaid) {
-    console.log('[parseMarkdown] Final HTML has mermaid-diagram?', html.includes('mermaid-diagram'));
-    console.log('[parseMarkdown] mermaidDiagrams array length:', mermaidDiagrams.length);
-  }
 
   return html;
 }
