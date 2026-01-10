@@ -167,13 +167,41 @@ export function parseMarkdown(text: string): string {
   // Inline code with special styling
   html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
 
-  // Headers (H1-H6)
-  html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
-  html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
-  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Helper to create heading ID from text
+  const createHeadingId = (text: string): string => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .substring(0, 50);
+  };
+
+  // Headers (H1-H6) with IDs for navigation
+  html = html.replace(/^###### (.+)$/gm, (_, text) => {
+    const id = createHeadingId(text);
+    return `<h6 id="heading-${id}">${text}</h6>`;
+  });
+  html = html.replace(/^##### (.+)$/gm, (_, text) => {
+    const id = createHeadingId(text);
+    return `<h5 id="heading-${id}">${text}</h5>`;
+  });
+  html = html.replace(/^#### (.+)$/gm, (_, text) => {
+    const id = createHeadingId(text);
+    return `<h4 id="heading-${id}">${text}</h4>`;
+  });
+  html = html.replace(/^### (.+)$/gm, (_, text) => {
+    const id = createHeadingId(text);
+    return `<h3 id="heading-${id}">${text}</h3>`;
+  });
+  html = html.replace(/^## (.+)$/gm, (_, text) => {
+    const id = createHeadingId(text);
+    return `<h2 id="heading-${id}">${text}</h2>`;
+  });
+  html = html.replace(/^# (.+)$/gm, (_, text) => {
+    const id = createHeadingId(text);
+    return `<h1 id="heading-${id}">${text}</h1>`;
+  });
 
   // Tables - Parse markdown tables
   html = parseMarkdownTables(html);

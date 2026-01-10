@@ -1433,3 +1433,58 @@
 .dark .mermaid-diagram {
   background: linear-gradient(135deg, hsl(var(--muted) / 0.35), hsl(var(--card) / 0.6));
 }
+
+/* TOC Navigation Highlight Effect */
+.toc-highlight {
+  animation: toc-pulse 2s ease-out forwards;
+  position: relative;
+}
+
+.toc-highlight::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  right: -1rem;
+  top: -0.5rem;
+  bottom: -0.5rem;
+  background: hsl(var(--primary) / 0.15);
+  border-radius: 0.75rem;
+  border-left: 3px solid hsl(var(--primary));
+  animation: toc-fade 2s ease-out forwards;
+  z-index: -1;
+}
+
+@keyframes toc-pulse {
+  0% {
+    transform: scale(1.02);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes toc-fade {
+  0% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Markdown Preview Heading Styles for Navigation */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  scroll-margin-top: 2rem;
+  transition: all 0.3s ease;
+}
