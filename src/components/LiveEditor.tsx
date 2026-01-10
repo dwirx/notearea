@@ -333,6 +333,15 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Slash command detection
   const { isActive: isSlashActive } = useSlashCommand(value, cursorPosition);
@@ -1007,7 +1016,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
           aria-hidden="true"
           style={{
             ...editorStyles,
-            padding: '2rem 1rem 6rem 1rem',
+            padding: isMobile ? '1rem 0.75rem 5rem 0.75rem' : '2rem 1.5rem 6rem 1.5rem',
           }}
         >
           {value ? processContentWithHighlights(value, searchHighlights) : <span className="md-placeholder">{placeholder}</span>}
@@ -1035,7 +1044,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
           onBlur={onBlur}
           style={{
             ...editorStyles,
-            padding: '2rem 1rem 6rem 1rem',
+            padding: isMobile ? '1rem 0.75rem 5rem 0.75rem' : '2rem 1.5rem 6rem 1.5rem',
             caretColor: 'hsl(var(--editor-cursor))',
           }}
         />

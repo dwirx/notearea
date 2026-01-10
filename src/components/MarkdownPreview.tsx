@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { parseMarkdown, getMermaidDiagrams } from '@/lib/markdown';
 import mermaid from 'mermaid';
 import ImageLightbox from './ImageLightbox';
+import MermaidViewer from './MermaidViewer';
 
 // Initialize mermaid
 mermaid.initialize({
@@ -10,6 +11,19 @@ mermaid.initialize({
   theme: 'default',
   securityLevel: 'loose',
   fontFamily: 'inherit',
+  flowchart: {
+    useMaxWidth: false,
+    htmlLabels: true,
+  },
+  sequence: {
+    useMaxWidth: false,
+  },
+  gantt: {
+    useMaxWidth: false,
+  },
+  timeline: {
+    useMaxWidth: false,
+  },
 });
 
 export interface MarkdownPreviewProps {
@@ -23,6 +37,12 @@ interface LightboxState {
   alt: string;
 }
 
+interface MermaidViewerState {
+  isOpen: boolean;
+  svgContent: string;
+  diagramCode: string;
+}
+
 const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
   const html = parseMarkdown(content);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,6 +52,14 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
     src: '',
     alt: ''
   });
+  const [mermaidViewer, setMermaidViewer] = useState<MermaidViewerState>({
+    isOpen: false,
+    svgContent: '',
+    diagramCode: ''
+  });
+
+  // Store rendered SVG content for mermaid diagrams
+  const mermaidSvgCache = useRef<Map<number, string>>(new Map());
 
   const handleCopyCode = useCallback(async (code: string, index: number) => {
     try {
@@ -51,6 +79,16 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
     setLightbox(prev => ({ ...prev, isOpen: false }));
   }, []);
 
+  // Open mermaid viewer
+  const openMermaidViewer = useCallback((svgContent: string, diagramCode: string) => {
+    setMermaidViewer({ isOpen: true, svgContent, diagramCode });
+  }, []);
+
+  // Close mermaid viewer
+  const closeMermaidViewer = useCallback(() => {
+    setMermaidViewer(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
   // Handle image click using event delegation
   const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -59,8 +97,25 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
     if (target.tagName === 'IMG' && target.getAttribute('data-lightbox') === 'true') {
       const img = target as HTMLImageElement;
       openLightbox(img.src, img.alt || 'Image');
+      return;
     }
-  }, [openLightbox]);
+
+    // Check if clicked on mermaid diagram or its expand button
+    const mermaidElement = target.closest('.mermaid-diagram') as HTMLElement;
+    if (mermaidElement) {
+      const indexStr = mermaidElement.getAttribute('data-mermaid-index');
+      if (indexStr !== null) {
+        const index = parseInt(indexStr, 10);
+        const svgContent = mermaidSvgCache.current.get(index);
+        const diagrams = getMermaidDiagrams();
+        const diagramCode = diagrams[index] || '';
+
+        if (svgContent) {
+          openMermaidViewer(svgContent, diagramCode);
+        }
+      }
+    }
+  }, [openLightbox, openMermaidViewer]);
 
   // Render mermaid diagrams
   useEffect(() => {
@@ -68,6 +123,9 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
 
     const diagrams = getMermaidDiagrams();
     if (diagrams.length === 0) return;
+
+    // Clear SVG cache for fresh render
+    mermaidSvgCache.current.clear();
 
     const mermaidElements = containerRef.current.querySelectorAll('.mermaid-diagram');
 
@@ -78,8 +136,42 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
       try {
         const id = `mermaid-${Date.now()}-${index}`;
         const { svg } = await mermaid.render(id, diagramCode);
-        element.innerHTML = svg;
+
+        // Store SVG content in cache
+        mermaidSvgCache.current.set(index, svg);
+
+        // Create wrapper with expand button
+        element.innerHTML = `
+          <div class="mermaid-content">${svg}</div>
+          <button class="mermaid-expand-btn" title="Klik untuk memperbesar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+            <span>Lihat Diagram</span>
+          </button>
+        `;
         element.classList.add('mermaid-rendered');
+
+        // Check if diagram is wider than container (needs scroll)
+        requestAnimationFrame(() => {
+          const el = element as HTMLElement;
+          if (el.scrollWidth > el.clientWidth) {
+            el.classList.add('has-scroll');
+
+            // Add scroll listener for scroll hint
+            el.addEventListener('scroll', () => {
+              const isAtEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 10;
+              if (isAtEnd) {
+                el.classList.add('scrolled-end');
+              } else {
+                el.classList.remove('scrolled-end');
+              }
+            });
+          }
+        });
       } catch (err) {
         console.error('Mermaid render error:', err);
         element.innerHTML = `<div class="mermaid-error">Diagram error: ${err instanceof Error ? err.message : 'Unknown error'}</div>`;
@@ -158,6 +250,13 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
         alt={lightbox.alt}
         isOpen={lightbox.isOpen}
         onClose={closeLightbox}
+      />
+
+      <MermaidViewer
+        isOpen={mermaidViewer.isOpen}
+        onClose={closeMermaidViewer}
+        svgContent={mermaidViewer.svgContent}
+        diagramCode={mermaidViewer.diagramCode}
       />
     </>
   );
