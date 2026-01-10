@@ -1086,7 +1086,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
         {/* Highlight overlay */}
         <div
           ref={highlightRef}
-          className="live-highlight pointer-events-none whitespace-pre-wrap break-words"
+          className="live-highlight pointer-events-none"
           aria-hidden="true"
           style={{
             ...editorStyles,

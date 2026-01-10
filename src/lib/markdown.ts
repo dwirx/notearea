@@ -150,6 +150,14 @@ export function parseMarkdown(text: string): string {
       return renderStatsInfographic(title, items, colors);
     } else if (infographicType.includes('cards') || infographicType.includes('grid')) {
       return renderCardsInfographic(title, items, colors);
+    } else if (infographicType.includes('pyramid')) {
+      return renderPyramidInfographic(title, items, colors);
+    } else if (infographicType.includes('funnel')) {
+      return renderFunnelInfographic(title, items, colors);
+    } else if (infographicType.includes('checklist') || infographicType.includes('todo')) {
+      return renderChecklistInfographic(title, items, colors);
+    } else if (infographicType.includes('feature') || infographicType.includes('list')) {
+      return renderFeatureListInfographic(title, items, colors);
     } else {
       // Default: timeline
       return renderTimelineInfographic(title, items, colors);
@@ -273,6 +281,137 @@ export function parseMarkdown(text: string): string {
     html += '</div></div></div>';
     return html;
   }
+
+  function renderPyramidInfographic(title: string, items: {label: string; desc: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-pyramid">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="pyramid-container">';
+
+    const totalItems = items.length;
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      const widthPercent = 40 + ((totalItems - index) / totalItems) * 55;
+
+      html += `
+        <div class="pyramid-level" style="width: ${widthPercent}%; background: ${color}">
+          <h4 class="pyramid-label">${item.label}</h4>
+          ${item.desc ? `<p class="pyramid-desc">${item.desc}</p>` : ''}
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderFunnelInfographic(title: string, items: {label: string; desc: string; value?: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-funnel">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="funnel-container">';
+
+    const totalItems = items.length;
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      const widthPercent = 100 - (index / totalItems) * 50;
+
+      html += `
+        <div class="funnel-level" style="width: ${widthPercent}%">
+          <div class="funnel-bar" style="background: ${color}">
+            ${item.value ? `<span class="funnel-value">${item.value}</span>` : ''}
+            <span class="funnel-label">${item.label}</span>
+          </div>
+          ${item.desc ? `<p class="funnel-desc">${item.desc}</p>` : ''}
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderChecklistInfographic(title: string, items: {label: string; desc: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-checklist">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="checklist-container">';
+
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      html += `
+        <div class="checklist-item">
+          <div class="checklist-check" style="background: ${color}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4 class="checklist-label">${item.label}</h4>
+            ${item.desc ? `<p class="checklist-desc">${item.desc}</p>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderFeatureListInfographic(title: string, items: {label: string; desc: string; icon?: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-features">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="features-container">';
+
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      html += `
+        <div class="feature-item">
+          <div class="feature-icon" style="background: ${color}">
+            ${item.icon || '✓'}
+          </div>
+          <div class="feature-content">
+            <h4 class="feature-label">${item.label}</h4>
+            ${item.desc ? `<p class="feature-desc">${item.desc}</p>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  // Extract Callout/Admonition blocks: :::type or :::type[title]
+  html = html.replace(/:::(info|tip|warning|danger|note|success|quote)(?:\[([^\]]*)\])?\s*[\r\n]+([\s\S]*?):::/g, (_, type, customTitle, content) => {
+    const titles: Record<string, string> = {
+      info: 'Informasi',
+      tip: 'Tips',
+      warning: 'Peringatan',
+      danger: 'Bahaya',
+      note: 'Catatan',
+      success: 'Berhasil',
+      quote: 'Kutipan'
+    };
+    const icons: Record<string, string> = {
+      info: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+      tip: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>',
+      warning: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+      danger: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+      note: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>',
+      success: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      quote: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>'
+    };
+
+    const title = customTitle || titles[type] || type;
+    const icon = icons[type] || icons.info;
+    const trimmedContent = content.trim();
+
+    return `<div class="callout callout-${type}">
+      <div class="callout-header">
+        <span class="callout-icon">${icon}</span>
+        <span class="callout-title">${title}</span>
+      </div>
+      <div class="callout-content">${trimmedContent}</div>
+    </div>`;
+  });
 
   // Extract Mermaid blocks
   // Handle both LF and CRLF line endings

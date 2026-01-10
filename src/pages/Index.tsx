@@ -338,6 +338,13 @@ const Index = () => {
         return;
       }
 
+      // Exit Zen mode with Escape
+      if (e.key === 'Escape' && isZenMode) {
+        e.preventDefault();
+        setIsZenMode(false);
+        return;
+      }
+
       // Table of Contents: Ctrl/Cmd + Shift + T
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 't') {
         e.preventDefault();
@@ -379,7 +386,7 @@ const Index = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSaveDocument, handleNewDocument, toggleTheme, toggleZenMode]);
+  }, [handleSaveDocument, handleNewDocument, toggleTheme, toggleZenMode, isZenMode]);
 
   // Navigate to position in editor
   const handleNavigateToPosition = useCallback((position: number) => {
@@ -533,6 +540,63 @@ const Index = () => {
       transition={{ duration: 0.5 }}
       className={`min-h-screen min-h-[100dvh] bg-editor-bg ${isZenMode ? 'zen-mode' : ''}`}
     >
+      {/* Zen Mode Exit Indicator */}
+      {isZenMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="zen-toolbar"
+        >
+          {/* View mode toggle */}
+          <div className="zen-toolbar-group">
+            <button
+              onClick={() => setViewMode('editor')}
+              className={`zen-toolbar-btn ${viewMode === 'editor' ? 'active' : ''}`}
+              title="Mode Editor"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('preview')}
+              className={`zen-toolbar-btn ${viewMode === 'preview' ? 'active' : ''}`}
+              title="Mode Pratinjau"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('split')}
+              className={`zen-toolbar-btn hidden sm:flex ${viewMode === 'split' ? 'active' : ''}`}
+              title="Mode Split"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                <path d="M12 3v18"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Exit button */}
+          <button
+            onClick={() => setIsZenMode(false)}
+            className="zen-exit-btn"
+            aria-label="Keluar dari Mode Fokus"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+            <span>Keluar</span>
+            <kbd>Esc</kbd>
+          </button>
+        </motion.div>
+      )}
       {/* Document Header */}
       {!isZenMode && (
         <DocumentHeader
