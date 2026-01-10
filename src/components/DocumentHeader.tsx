@@ -7,7 +7,8 @@ import {
   Loader2,
   Check,
   Search,
-  List
+  List,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { extractTitle } from '@/lib/compression';
@@ -22,10 +23,12 @@ interface DocumentHeaderProps {
   onRedo?: () => void;
   onOpenSettings?: () => void;
   onOpenSearch?: () => void;
+  onOpenHistory?: () => void;
   showTOC?: boolean;
   isZenMode?: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
+  hasVersions?: boolean;
 }
 
 const formatLastSaved = (timestamp: number): string => {
@@ -52,10 +55,12 @@ const DocumentHeader = ({
   onRedo,
   onOpenSettings,
   onOpenSearch,
+  onOpenHistory,
   showTOC = false,
   isZenMode = false,
   canUndo = false,
   canRedo = false,
+  hasVersions = false,
 }: DocumentHeaderProps) => {
   const title = extractTitle(content) || 'Dokumen Tanpa Judul';
 
@@ -130,6 +135,19 @@ const DocumentHeader = ({
           >
             <Redo2 className="h-4 w-4 xs:h-5 xs:w-5" />
           </Button>
+
+          {/* History Button */}
+          {hasVersions && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onOpenHistory}
+              className="h-8 w-8 xs:h-9 xs:w-9 sm:h-10 sm:w-10 p-0 rounded-lg text-muted-foreground hover:text-foreground hidden xs:flex"
+              aria-label="Version History"
+            >
+              <History className="h-4 w-4 xs:h-5 xs:w-5" />
+            </Button>
+          )}
 
           {/* Settings Button */}
           <Button

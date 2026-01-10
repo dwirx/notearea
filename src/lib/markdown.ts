@@ -1,15 +1,54 @@
 import hljs from 'highlight.js';
+import katex from 'katex';
+
+// Store for mermaid diagrams and math expressions
+let mermaidDiagrams: string[] = [];
+let mathBlocks: string[] = [];
+let mathInlines: string[] = [];
+
+// Get stored mermaid diagrams
+export function getMermaidDiagrams(): string[] {
+  return mermaidDiagrams;
+}
+
+// Get stored math blocks
+export function getMathBlocks(): string[] {
+  return mathBlocks;
+}
+
+// Get stored inline math
+export function getMathInlines(): string[] {
+  return mathInlines;
+}
+
+// Render LaTeX math to HTML using KaTeX
+function renderMath(latex: string, displayMode: boolean = false): string {
+  try {
+    return katex.renderToString(latex, {
+      displayMode,
+      throwOnError: false,
+      strict: false,
+    });
+  } catch {
+    return `<span class="math-error">${latex}</span>`;
+  }
+}
 
 // Simple markdown parser for preview with HTML support
 export function parseMarkdown(text: string): string {
   if (!text) return '';
+
+  // Reset storage arrays
+  mermaidDiagrams = [];
+  mathBlocks = [];
+  mathInlines = [];
 
   let html = text;
 
   // Store HTML blocks to preserve them
   const htmlBlocks: string[] = [];
   const htmlBlockPlaceholder = '___HTML_BLOCK_PLACEHOLDER___';
-  
+
   // Preserve HTML blocks (block-level HTML tags)
   html = html.replace(/(<(?:p|div|table|thead|tbody|tr|td|th|img|a|center|br|hr)[^>]*>[\s\S]*?<\/(?:p|div|table|thead|tbody|tr|td|th|a|center)>|<(?:img|br|hr)[^>]*\/?>)/gi, (match) => {
     htmlBlocks.push(match);
@@ -38,6 +77,68 @@ export function parseMarkdown(text: string): string {
   // Restore HTML blocks
   html = html.replace(new RegExp(`${htmlBlockPlaceholder}(\\d+)${htmlBlockPlaceholder}`, 'g'), (_, index) => {
     return htmlBlocks[parseInt(index)];
+  });
+
+  // Math block expressions - support multiple formats
+  // Format 1: $$...$$ (most common)
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathBlocks.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, true);
+    return `<div class="math-block">${rendered}</div>`;
+  });
+
+  // Format 2: \[...\] (LaTeX display math)
+  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathBlocks.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, true);
+    return `<div class="math-block">${rendered}</div>`;
+  });
+
+  // Format 3: [...] at start of line (common shorthand) - only if contains math-like content
+  html = html.replace(/^\[((?:[^[\]]*(?:\\[a-zA-Z]+|[_^{}]|\\[{}])[^[\]]*)+)\]$/gm, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathBlocks.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, true);
+    return `<div class="math-block">${rendered}</div>`;
+  });
+
+  // Inline math expressions
+  // Format 1: $...$ (avoid matching $$)
+  html = html.replace(/(?<!\$)\$(?!\$)([^\$\n]+?)\$(?!\$)/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathInlines.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, false);
+    return `<span class="math-inline">${rendered}</span>`;
+  });
+
+  // Format 2: \(...\) (LaTeX inline math)
+  html = html.replace(/\\\(([^)]+?)\\\)/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathInlines.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, false);
+    return `<span class="math-inline">${rendered}</span>`;
+  });
+
+  // Format 3: (...) containing math-like content (LaTeX commands)
+  html = html.replace(/\(([^()]*(?:\\[a-zA-Z]+|[_^{}])[^()]*)\)/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    // Only process if it looks like math (contains LaTeX commands)
+    if (/\\[a-zA-Z]+/.test(trimmedLatex) || /[_^{}]/.test(trimmedLatex)) {
+      mathInlines.push(trimmedLatex);
+      const rendered = renderMath(trimmedLatex, false);
+      return `<span class="math-inline">${rendered}</span>`;
+    }
+    return `(${latex})`;
+  });
+
+  // Mermaid diagrams - special handling for ```mermaid blocks
+  html = html.replace(/```mermaid\n?([\s\S]*?)```/g, (_, code) => {
+    const trimmedCode = code.trim();
+    mermaidDiagrams.push(trimmedCode);
+    const index = mermaidDiagrams.length - 1;
+    return `<div class="mermaid-diagram" data-mermaid-index="${index}">${trimmedCode}</div>`;
   });
 
   // Code blocks with syntax highlighting (must be before other replacements)
@@ -145,10 +246,10 @@ function parseMarkdownTables(html: string): string {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    
+
     // Check if line is a table row (starts and ends with |, or has | in between)
     const isTableRow = line.includes('|') && line.match(/\|.*\|/);
-    
+
     // Check if line is separator row (like |---|---|)
     const isSeparator = line.match(/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/);
 
@@ -193,7 +294,7 @@ function buildTable(rows: string[], alignments: string[]): string {
   if (rows.length === 0) return '';
 
   let tableHtml = '<div class="table-wrapper"><table>';
-  
+
   rows.forEach((row, rowIndex) => {
     const cells = row.split('|')
       .map(cell => cell.trim())

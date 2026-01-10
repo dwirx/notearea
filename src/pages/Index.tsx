@@ -12,6 +12,7 @@ import SearchReplace from '@/components/SearchReplace';
 import SettingsPanel from '@/components/SettingsPanel';
 import CommandPalette from '@/components/CommandPalette';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
+import VersionHistory from '@/components/VersionHistory';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditorCommands } from '@/hooks/useEditorCommands';
@@ -36,6 +37,7 @@ const Index = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
@@ -59,6 +61,8 @@ const Index = () => {
 
   const {
     documents,
+    folders,
+    allTags,
     currentDocument,
     currentDocId,
     isLoaded,
@@ -66,6 +70,12 @@ const Index = () => {
     createDocument,
     updateDocument,
     deleteDocument,
+    togglePinDocument,
+    moveToFolder,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    restoreVersion,
   } = useDocuments();
 
   const { isDark, toggleTheme, currentTheme, setTheme } = useTheme();
@@ -198,7 +208,7 @@ const Index = () => {
   }, [content, currentDocId, createDocument, updateDocument]);
 
   // Handle new document
-  const handleNewDocument = useCallback(() => {
+  const handleNewDocument = useCallback((folderId?: string | null) => {
     // Save current content first if there's unsaved changes
     if (hasUnsavedChanges.current && content.trim()) {
       performAutoSave();
@@ -210,8 +220,14 @@ const Index = () => {
     setLastSaved(null);
     hasUnsavedChanges.current = false;
     window.history.replaceState(null, '', window.location.pathname);
+
+    // If folderId is provided, we'll pass it when creating the document
+    if (folderId) {
+      createDocument('', folderId);
+    }
+
     toast.success('Dokumen baru dibuat');
-  }, [content, setCurrentDocId, performAutoSave]);
+  }, [content, setCurrentDocId, performAutoSave, createDocument]);
 
   // Handle select document
   const handleSelectDocument = useCallback((id: string) => {
@@ -525,8 +541,10 @@ const Index = () => {
           onToggleTOC={() => setShowTOC(!showTOC)}
           onOpenSettings={() => setShowSettings(true)}
           onOpenSearch={() => setShowSearch(true)}
+          onOpenHistory={() => setShowVersionHistory(true)}
           showTOC={showTOC}
           isZenMode={isZenMode}
+          hasVersions={!!currentDocument && currentDocument.versions.length > 0}
         />
       )}
 
@@ -630,10 +648,17 @@ Ketik / untuk opsi insert cepat."
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         documents={documents}
+        folders={folders}
+        allTags={allTags}
         currentDocId={currentDocId}
         onSelectDocument={handleSelectDocument}
         onNewDocument={handleNewDocument}
         onDeleteDocument={handleDeleteDocument}
+        onTogglePin={togglePinDocument}
+        onMoveToFolder={moveToFolder}
+        onCreateFolder={createFolder}
+        onUpdateFolder={updateFolder}
+        onDeleteFolder={deleteFolder}
       />
 
       {/* QR Modal */}
@@ -673,6 +698,24 @@ Ketik / untuk opsi insert cepat."
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
+
+      {/* Version History Panel */}
+      {currentDocId && currentDocument && (
+        <VersionHistory
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          versions={currentDocument.versions}
+          currentContent={content}
+          onRestoreVersion={(versionId) => {
+            restoreVersion(currentDocId, versionId);
+            // Reload the content after restoring
+            const doc = documents.find(d => d.id === currentDocId);
+            if (doc) {
+              setContent(doc.content);
+            }
+          }}
+        />
+      )}
 
       {/* Hidden file input for import backup */}
       <input

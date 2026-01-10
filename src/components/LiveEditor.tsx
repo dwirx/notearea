@@ -895,6 +895,103 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
     }
   };
 
+  // Convert file to base64 data URL
+  const fileToDataUrl = useCallback((file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  // Insert image markdown at cursor position
+  const insertImageMarkdown = useCallback((dataUrl: string, fileName: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    // Generate a cleaner name from filename
+    const altText = fileName.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    const imageMarkdown = `![${altText}](${dataUrl})`;
+
+    const newValue = value.slice(0, start) + imageMarkdown + value.slice(end);
+    onChange(newValue);
+
+    // Position cursor after the inserted image
+    requestAnimationFrame(() => {
+      const newPos = start + imageMarkdown.length;
+      textarea.selectionStart = textarea.selectionEnd = newPos;
+      textarea.focus();
+    });
+  }, [value, onChange]);
+
+  // Handle paste event for images
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        try {
+          const dataUrl = await fileToDataUrl(file);
+          const fileName = file.name || `image-${Date.now()}.${item.type.split('/')[1]}`;
+          insertImageMarkdown(dataUrl, fileName);
+        } catch (err) {
+          console.error('Failed to paste image:', err);
+        }
+        return;
+      }
+    }
+  }, [fileToDataUrl, insertImageMarkdown]);
+
+  // Handle drag over event
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
+    const hasImages = Array.from(e.dataTransfer.types).some(
+      type => type === 'Files' || type.startsWith('image/')
+    );
+
+    if (hasImages) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  // Handle drop event for images
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    // Check if any files are images
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    e.preventDefault();
+
+    // Process all dropped images
+    for (const file of imageFiles) {
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        insertImageMarkdown(dataUrl, file.name);
+      } catch (err) {
+        console.error('Failed to drop image:', err);
+      }
+    }
+  }, [fileToDataUrl, insertImageMarkdown]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -925,6 +1022,9 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
           onKeyUp={handleKeyUp}
           onClick={handleClick}
           onScroll={syncScroll}
+          onPaste={handlePaste}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
           placeholder=""
           className="live-textarea absolute inset-0 w-full h-full resize-none outline-none border-0 bg-transparent"
           spellCheck={false}

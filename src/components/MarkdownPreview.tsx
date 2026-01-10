@@ -1,7 +1,16 @@
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { parseMarkdown } from '@/lib/markdown';
+import { parseMarkdown, getMermaidDiagrams } from '@/lib/markdown';
+import mermaid from 'mermaid';
 import ImageLightbox from './ImageLightbox';
+
+// Initialize mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  securityLevel: 'loose',
+  fontFamily: 'inherit',
+});
 
 export interface MarkdownPreviewProps {
   content: string;
@@ -45,7 +54,7 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
   // Handle image click using event delegation
   const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    
+
     // Check if clicked element is an image with lightbox attribute
     if (target.tagName === 'IMG' && target.getAttribute('data-lightbox') === 'true') {
       const img = target as HTMLImageElement;
@@ -53,11 +62,36 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
     }
   }, [openLightbox]);
 
+  // Render mermaid diagrams
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const diagrams = getMermaidDiagrams();
+    if (diagrams.length === 0) return;
+
+    const mermaidElements = containerRef.current.querySelectorAll('.mermaid-diagram');
+
+    mermaidElements.forEach(async (element, index) => {
+      const diagramCode = diagrams[index];
+      if (!diagramCode) return;
+
+      try {
+        const id = `mermaid-${Date.now()}-${index}`;
+        const { svg } = await mermaid.render(id, diagramCode);
+        element.innerHTML = svg;
+        element.classList.add('mermaid-rendered');
+      } catch (err) {
+        console.error('Mermaid render error:', err);
+        element.innerHTML = `<div class="mermaid-error">Diagram error: ${err instanceof Error ? err.message : 'Unknown error'}</div>`;
+      }
+    });
+  }, [html]);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     const preElements = containerRef.current.querySelectorAll('pre');
-    
+
     preElements.forEach((pre, index) => {
       // Skip if button already exists
       if (pre.querySelector('.copy-code-btn')) return;
@@ -72,7 +106,7 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
       button.className = 'copy-code-btn';
       button.setAttribute('aria-label', 'Salin kode');
       button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
-      
+
       button.addEventListener('click', () => handleCopyCode(codeText, index));
 
       pre.appendChild(button);
