@@ -100,18 +100,21 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
       return;
     }
 
-    // Check if clicked on mermaid diagram or its expand button
-    const mermaidElement = target.closest('.mermaid-diagram') as HTMLElement;
-    if (mermaidElement) {
-      const indexStr = mermaidElement.getAttribute('data-mermaid-index');
-      if (indexStr !== null) {
-        const index = parseInt(indexStr, 10);
-        const svgContent = mermaidSvgCache.current.get(index);
-        const diagrams = getMermaidDiagrams();
-        const diagramCode = diagrams[index] || '';
+    // Only open mermaid viewer when clicking the expand button, not the whole diagram
+    const expandButton = target.closest('.mermaid-expand-btn') as HTMLElement;
+    if (expandButton) {
+      const mermaidElement = expandButton.closest('.mermaid-diagram') as HTMLElement;
+      if (mermaidElement) {
+        const indexStr = mermaidElement.getAttribute('data-mermaid-index');
+        if (indexStr !== null) {
+          const index = parseInt(indexStr, 10);
+          const svgContent = mermaidSvgCache.current.get(index);
+          const diagrams = getMermaidDiagrams();
+          const diagramCode = diagrams[index] || '';
 
-        if (svgContent) {
-          openMermaidViewer(svgContent, diagramCode);
+          if (svgContent) {
+            openMermaidViewer(svgContent, diagramCode);
+          }
         }
       }
     }
@@ -143,14 +146,14 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
         // Create wrapper with expand button
         element.innerHTML = `
           <div class="mermaid-content">${svg}</div>
-          <button class="mermaid-expand-btn" title="Klik untuk memperbesar">
+          <button class="mermaid-expand-btn" title="Klik untuk memperbesar diagram">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 3 21 3 21 9"></polyline>
               <polyline points="9 21 3 21 3 15"></polyline>
               <line x1="21" y1="3" x2="14" y2="10"></line>
               <line x1="3" y1="21" x2="10" y2="14"></line>
             </svg>
-            <span>Lihat Diagram</span>
+            <span>Layar Penuh</span>
           </button>
         `;
         element.classList.add('mermaid-rendered');
@@ -169,6 +172,38 @@ const MarkdownPreview = ({ content, editorStyles }: MarkdownPreviewProps) => {
               } else {
                 el.classList.remove('scrolled-end');
               }
+            });
+
+            // Add drag-to-scroll for desktop
+            let isDown = false;
+            let startX: number;
+            let scrollLeft: number;
+
+            el.addEventListener('mousedown', (e) => {
+              // Don't start drag if clicking on button
+              if ((e.target as HTMLElement).closest('.mermaid-expand-btn')) return;
+              isDown = true;
+              el.style.cursor = 'grabbing';
+              startX = e.pageX - el.offsetLeft;
+              scrollLeft = el.scrollLeft;
+            });
+
+            el.addEventListener('mouseleave', () => {
+              isDown = false;
+              el.style.cursor = 'grab';
+            });
+
+            el.addEventListener('mouseup', () => {
+              isDown = false;
+              el.style.cursor = 'grab';
+            });
+
+            el.addEventListener('mousemove', (e) => {
+              if (!isDown) return;
+              e.preventDefault();
+              const x = e.pageX - el.offsetLeft;
+              const walk = (x - startX) * 1.5;
+              el.scrollLeft = scrollLeft - walk;
             });
           }
         });
