@@ -75,11 +75,14 @@ export function parseMarkdown(text: string): string {
     const lines = trimmedCode.split('\n');
     const firstLine = lines[0].trim();
     if (!firstLine.startsWith('infographic')) {
-      return '<div class="infographic-error">Format infographic tidak valid</div>';
+      return '<div class="infographic-container"><div class="infographic-error">Format infographic tidak valid. Baris pertama harus: infographic [type]</div></div>';
     }
 
+    // Get infographic type
+    const infographicType = firstLine.replace('infographic', '').trim() || 'timeline';
+
     let title = '';
-    interface InfographicItem { label: string; desc: string; }
+    interface InfographicItem { label: string; desc: string; value?: string; icon?: string; }
     const items: InfographicItem[] = [];
     let currentItem: Partial<InfographicItem> | null = null;
 
@@ -94,7 +97,12 @@ export function parseMarkdown(text: string): string {
       }
       if (trimmed.startsWith('- label ')) {
         if (currentItem && currentItem.label) {
-          items.push({ label: currentItem.label, desc: currentItem.desc || '' });
+          items.push({
+            label: currentItem.label,
+            desc: currentItem.desc || '',
+            value: currentItem.value || '',
+            icon: currentItem.icon || ''
+          });
         }
         currentItem = { label: trimmed.replace('- label ', '').trim() };
         continue;
@@ -105,38 +113,67 @@ export function parseMarkdown(text: string): string {
         }
         continue;
       }
+      if (trimmed.startsWith('value ')) {
+        if (currentItem) {
+          currentItem.value = trimmed.replace('value ', '').trim();
+        }
+        continue;
+      }
+      if (trimmed.startsWith('icon ')) {
+        if (currentItem) {
+          currentItem.icon = trimmed.replace('icon ', '').trim();
+        }
+        continue;
+      }
     }
     if (currentItem && currentItem.label) {
-      items.push({ label: currentItem.label, desc: currentItem.desc || '' });
+      items.push({
+        label: currentItem.label,
+        desc: currentItem.desc || '',
+        value: currentItem.value || '',
+        icon: currentItem.icon || ''
+      });
     }
 
-    // Color palette for timeline dots
-    const timelineColors = [
+    // Color palette
+    const colors = [
       'hsl(200, 90%, 60%)', 'hsl(145, 70%, 50%)', 'hsl(280, 70%, 65%)',
       'hsl(340, 80%, 60%)', 'hsl(35, 90%, 55%)', 'hsl(180, 70%, 50%)',
     ];
 
-    // Build the timeline HTML directly
-    let timelineHtml = '<div class="infographic-container infographic-rendered"><div class="infographic-timeline">';
-
-    if (title) {
-      timelineHtml += `<h3 class="infographic-title">${title}</h3>`;
+    // Render based on type
+    if (infographicType.includes('process') || infographicType.includes('steps')) {
+      return renderProcessInfographic(title, items, colors);
+    } else if (infographicType.includes('comparison') || infographicType.includes('vs')) {
+      return renderComparisonInfographic(title, items, colors);
+    } else if (infographicType.includes('stats') || infographicType.includes('numbers')) {
+      return renderStatsInfographic(title, items, colors);
+    } else if (infographicType.includes('cards') || infographicType.includes('grid')) {
+      return renderCardsInfographic(title, items, colors);
+    } else {
+      // Default: timeline
+      return renderTimelineInfographic(title, items, colors);
     }
+  });
 
-    timelineHtml += '<div class="timeline-container">';
+  // Helper functions for rendering different infographic types
+  function renderTimelineInfographic(title: string, items: {label: string; desc: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-timeline">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="timeline-container">';
 
     items.forEach((item, index) => {
-      const color = timelineColors[index % timelineColors.length];
-      const nextColor = timelineColors[(index + 1) % timelineColors.length];
+      const color = colors[index % colors.length];
+      const nextColor = colors[(index + 1) % colors.length];
       const isLast = index === items.length - 1;
 
-      timelineHtml += `
+      html += `
         <div class="timeline-item">
           <div class="timeline-step">
             <span class="step-label">STEP ${index + 1}</span>
           </div>
           <div class="timeline-dot-container">
-            <div class="timeline-dot" style="background-color: ${color}"></div>
+            <div class="timeline-dot" style="background-color: ${color}; color: ${color}"></div>
             ${!isLast ? `<div class="timeline-line" style="background: linear-gradient(to bottom, ${color}, ${nextColor})"></div>` : ''}
           </div>
           <div class="timeline-content">
@@ -147,10 +184,95 @@ export function parseMarkdown(text: string): string {
       `;
     });
 
-    timelineHtml += '</div></div></div>';
+    html += '</div></div></div>';
+    return html;
+  }
 
-    return timelineHtml;
-  });
+  function renderProcessInfographic(title: string, items: {label: string; desc: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-process">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="process-container">';
+
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      html += `
+        <div class="process-item">
+          <div class="process-number" style="background: ${color}; box-shadow: 0 4px 12px ${color.replace(')', ', 0.4)')}">
+            ${index + 1}
+          </div>
+          <h4 class="process-label">${item.label}</h4>
+          ${item.desc ? `<p class="process-desc">${item.desc}</p>` : ''}
+          <span class="process-arrow">→</span>
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderComparisonInfographic(title: string, items: {label: string; desc: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-comparison">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="comparison-container">';
+
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      html += `
+        <div class="comparison-item">
+          <div class="comparison-header" style="background: ${color}">
+            ${item.label}
+          </div>
+          <div class="comparison-body">
+            ${item.desc ? `<p class="comparison-desc">${item.desc}</p>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderStatsInfographic(title: string, items: {label: string; desc: string; value?: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-stats">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="stats-container">';
+
+    items.forEach((item) => {
+      html += `
+        <div class="stats-item">
+          <div class="stats-number">${item.value || item.label}</div>
+          <h4 class="stats-label">${item.value ? item.label : ''}</h4>
+          ${item.desc ? `<p class="stats-desc">${item.desc}</p>` : ''}
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderCardsInfographic(title: string, items: {label: string; desc: string; icon?: string}[], colors: string[]): string {
+    let html = '<div class="infographic-container infographic-rendered"><div class="infographic-cards">';
+    if (title) html += `<h3 class="infographic-title">${title}</h3>`;
+    html += '<div class="cards-container">';
+
+    items.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      html += `
+        <div class="card-item" style="--card-color: ${color}">
+          <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: ${color}; border-radius: 1rem 0 0 1rem;"></div>
+          ${item.icon ? `<div class="card-icon" style="background: ${color}">${item.icon}</div>` : ''}
+          <h4 class="card-label">${item.label}</h4>
+          ${item.desc ? `<p class="card-desc">${item.desc}</p>` : ''}
+        </div>
+      `;
+    });
+
+    html += '</div></div></div>';
+    return html;
+  }
 
   // Extract Mermaid blocks
   // Handle both LF and CRLF line endings
