@@ -102,6 +102,9 @@ const shortcutGroups: ShortcutGroup[] = [
     icon: <Sparkles className="h-4 w-4" />,
     shortcuts: [
       { keys: ['/'], description: 'Slash Commands', note: 'Ketik / untuk menu insert' },
+      { keys: ['/mermaid'], description: 'Mermaid Diagram', note: 'Flowchart, sequence, dll' },
+      { keys: ['/math'], description: 'Blok Math/LaTeX', note: '$$rumus$$' },
+      { keys: ['/imath'], description: 'Inline Math', note: '$rumus$' },
       { keys: ['Drag'], description: 'Seret gambar', note: 'Drop gambar ke editor' },
       { keys: ['Paste'], description: 'Tempel gambar', note: 'Paste gambar dari clipboard' },
     ],

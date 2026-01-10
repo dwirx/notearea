@@ -18,10 +18,12 @@ import {
   Hash,
   GripVertical
 } from 'lucide-react';
+import { Virtuoso } from 'react-virtuoso';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Document, Folder as FolderType, FOLDER_COLORS } from '@/hooks/useDocuments';
 import { cn } from '@/lib/utils';
+import { timeAgoShort } from '@/lib/timeago';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,20 +55,7 @@ interface DocumentsSidebarProps {
 }
 
 const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-
-  if (diff < 60000) return 'Baru saja';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m lalu`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}j lalu`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}h lalu`;
-
-  return date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-  });
+  return timeAgoShort(timestamp);
 };
 
 const getPreviewText = (content: string): string => {
@@ -639,8 +628,8 @@ const DocumentsSidebar = ({
               )}
             </div>
 
-            {/* Documents List */}
-            <div className="flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            {/* Documents List - Virtualized */}
+            <div className="flex-1 overflow-hidden">
               {filteredDocuments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
                   <div className="p-5 rounded-2xl bg-muted/30 mb-4">
@@ -657,185 +646,189 @@ const DocumentsSidebar = ({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {filteredDocuments.map((doc) => {
+                <Virtuoso
+                  style={{ height: '100%' }}
+                  data={filteredDocuments}
+                  overscan={5}
+                  itemContent={(_index, doc) => {
                     const folder = folders.find(f => f.id === doc.folderId);
-                    const isDragging = draggingDocId === doc.id;
+                    const isDraggingItem = draggingDocId === doc.id;
 
                     return (
-                      <div
-                        key={doc.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, doc.id)}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          "w-full text-left p-4 rounded-2xl transition-all duration-200 group relative cursor-pointer",
-                          isDragging && "opacity-50 scale-95",
-                          currentDocId === doc.id
-                            ? "bg-primary/10 border-2 border-primary/30 shadow-md"
-                            : "bg-muted/20 hover:bg-muted/50 border-2 border-transparent hover:border-border/50"
-                        )}
-                        onClick={() => handleSelect(doc.id)}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Drag handle */}
-                          <div className="p-1 rounded-md opacity-0 group-hover:opacity-50 hover:opacity-100 cursor-grab active:cursor-grabbing flex-shrink-0 mt-0.5">
-                            <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          </div>
+                      <div className="px-3 py-1">
+                        <div
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, doc.id)}
+                          onDragEnd={handleDragEnd}
+                          className={cn(
+                            "w-full text-left p-4 rounded-2xl transition-all duration-200 group relative cursor-pointer",
+                            isDraggingItem && "opacity-50 scale-95",
+                            currentDocId === doc.id
+                              ? "bg-primary/10 border-2 border-primary/30 shadow-md"
+                              : "bg-muted/20 hover:bg-muted/50 border-2 border-transparent hover:border-border/50"
+                          )}
+                          onClick={() => handleSelect(doc.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Drag handle */}
+                            <div className="p-1 rounded-md opacity-0 group-hover:opacity-50 hover:opacity-100 cursor-grab active:cursor-grabbing flex-shrink-0 mt-0.5">
+                              <GripVertical className="h-4 w-4 text-muted-foreground" />
+                            </div>
 
-                          <div className={cn(
-                            "p-2 rounded-xl flex-shrink-0 relative shadow-sm",
-                            currentDocId === doc.id ? "bg-primary/20" : "bg-muted/50"
-                          )}>
-                            <FileText className={cn(
-                              "h-4 w-4",
-                              currentDocId === doc.id ? "text-primary" : "text-muted-foreground"
-                            )} />
-                            {doc.isPinned && (
-                              <Pin className="absolute -top-1 -right-1 h-3 w-3 text-primary fill-primary" />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0 pr-10">
-                            <h3 className={cn(
-                              "font-semibold text-sm truncate",
-                              currentDocId === doc.id ? "text-primary" : "text-foreground"
+                            <div className={cn(
+                              "p-2 rounded-xl flex-shrink-0 relative shadow-sm",
+                              currentDocId === doc.id ? "bg-primary/20" : "bg-muted/50"
                             )}>
-                              {doc.title}
-                            </h3>
-
-                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-                              {getPreviewText(doc.content)}
-                            </p>
-
-                            {/* Tags */}
-                            {doc.tags.length > 0 && (
-                              <div className="flex items-center gap-1 mt-2 flex-wrap">
-                                {doc.tags.slice(0, 3).map(tag => (
-                                  <span
-                                    key={tag}
-                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/5 text-primary text-[10px] font-medium"
-                                  >
-                                    <Hash className="h-2 w-2" />
-                                    {tag}
-                                  </span>
-                                ))}
-                                {doc.tags.length > 3 && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    +{doc.tags.length - 3}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
-                              {folder && (
-                                <>
-                                  <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full">
-                                    <div
-                                      className="w-2.5 h-2.5 rounded-full"
-                                      style={{ backgroundColor: folder.color }}
-                                    />
-                                    <span className="truncate max-w-[80px]">{folder.name}</span>
-                                  </div>
-                                  <span className="text-muted-foreground/50">•</span>
-                                </>
+                              <FileText className={cn(
+                                "h-4 w-4",
+                                currentDocId === doc.id ? "text-primary" : "text-muted-foreground"
+                              )} />
+                              {doc.isPinned && (
+                                <Pin className="absolute -top-1 -right-1 h-3 w-3 text-primary fill-primary" />
                               )}
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{formatDate(doc.updatedAt)}</span>
+                            </div>
+
+                            <div className="flex-1 min-w-0 pr-10">
+                              <h3 className={cn(
+                                "font-semibold text-sm truncate",
+                                currentDocId === doc.id ? "text-primary" : "text-foreground"
+                              )}>
+                                {doc.title}
+                              </h3>
+
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                                {getPreviewText(doc.content)}
+                              </p>
+
+                              {/* Tags */}
+                              {doc.tags.length > 0 && (
+                                <div className="flex items-center gap-1 mt-2 flex-wrap">
+                                  {doc.tags.slice(0, 3).map(tag => (
+                                    <span
+                                      key={tag}
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/5 text-primary text-[10px] font-medium"
+                                    >
+                                      <Hash className="h-2 w-2" />
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {doc.tags.length > 3 && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      +{doc.tags.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
+                                {folder && (
+                                  <>
+                                    <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full">
+                                      <div
+                                        className="w-2.5 h-2.5 rounded-full"
+                                        style={{ backgroundColor: folder.color }}
+                                      />
+                                      <span className="truncate max-w-[80px]">{folder.name}</span>
+                                    </div>
+                                    <span className="text-muted-foreground/50">•</span>
+                                  </>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{formatDate(doc.updatedAt)}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Actions */}
-                        <div className="absolute right-3 top-3 flex items-center gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onTogglePin(doc.id);
-                            }}
-                            className={cn(
-                              "p-2 rounded-lg transition-all duration-200",
-                              doc.isPinned
-                                ? "text-primary bg-primary/10 hover:bg-primary/20"
-                                : "opacity-0 group-hover:opacity-100 hover:bg-muted text-muted-foreground hover:text-foreground"
-                            )}
-                            title={doc.isPinned ? "Lepas pin" : "Pin dokumen"}
-                          >
-                            {doc.isPinned ? (
-                              <PinOff className="h-4 w-4" />
-                            ) : (
-                              <Pin className="h-4 w-4" />
-                            )}
-                          </button>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                              {/* Move to folder */}
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onMoveToFolder(doc.id, null);
-                                }}
-                                disabled={!doc.folderId}
-                              >
-                                <FolderOpen className="h-4 w-4 mr-2" />
-                                Keluarkan dari Folder
-                              </DropdownMenuItem>
-                              {folders.length > 0 && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                    Pindahkan ke:
-                                  </div>
-                                  {folders.map(f => (
-                                    <DropdownMenuItem
-                                      key={f.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onMoveToFolder(doc.id, f.id);
-                                      }}
-                                      className={cn(
-                                        doc.folderId === f.id && "bg-muted"
-                                      )}
-                                    >
-                                      <div
-                                        className="w-3.5 h-3.5 rounded-full mr-2 shadow-sm"
-                                        style={{ backgroundColor: f.color }}
-                                      />
-                                      {f.name}
-                                      {doc.folderId === f.id && (
-                                        <Check className="h-3.5 w-3.5 ml-auto text-primary" />
-                                      )}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </>
+                          {/* Actions */}
+                          <div className="absolute right-3 top-3 flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTogglePin(doc.id);
+                              }}
+                              className={cn(
+                                "p-2 rounded-lg transition-all duration-200",
+                                doc.isPinned
+                                  ? "text-primary bg-primary/10 hover:bg-primary/20"
+                                  : "opacity-0 group-hover:opacity-100 hover:bg-muted text-muted-foreground hover:text-foreground"
                               )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={(e) => handleDelete(doc.id, e as unknown as React.MouseEvent)}
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                {deleteConfirm === doc.id ? 'Klik lagi untuk hapus' : 'Hapus Dokumen'}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              title={doc.isPinned ? "Lepas pin" : "Pin dokumen"}
+                            >
+                              {doc.isPinned ? (
+                                <PinOff className="h-4 w-4" />
+                              ) : (
+                                <Pin className="h-4 w-4" />
+                              )}
+                            </button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                {/* Move to folder */}
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onMoveToFolder(doc.id, null);
+                                  }}
+                                  disabled={!doc.folderId}
+                                >
+                                  <FolderOpen className="h-4 w-4 mr-2" />
+                                  Keluarkan dari Folder
+                                </DropdownMenuItem>
+                                {folders.length > 0 && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                      Pindahkan ke:
+                                    </div>
+                                    {folders.map(f => (
+                                      <DropdownMenuItem
+                                        key={f.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onMoveToFolder(doc.id, f.id);
+                                        }}
+                                        className={cn(
+                                          doc.folderId === f.id && "bg-muted"
+                                        )}
+                                      >
+                                        <div
+                                          className="w-3.5 h-3.5 rounded-full mr-2 shadow-sm"
+                                          style={{ backgroundColor: f.color }}
+                                        />
+                                        {f.name}
+                                        {doc.folderId === f.id && (
+                                          <Check className="h-3.5 w-3.5 ml-auto text-primary" />
+                                        )}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => handleDelete(doc.id, e as unknown as React.MouseEvent)}
+                                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  {deleteConfirm === doc.id ? 'Klik lagi untuk hapus' : 'Hapus Dokumen'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                  }}
+                />
               )}
             </div>
 

@@ -14,6 +14,8 @@ import {
   Image,
   Link,
   Terminal,
+  GitBranch,
+  Sigma,
 } from 'lucide-react';
 
 interface SlashCommand {
@@ -129,6 +131,30 @@ const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Tautan',
     icon: <Link className="h-4 w-4" />,
     template: '[text](url)',
+  },
+  {
+    id: 'mermaid',
+    command: '/mermaid',
+    label: 'Mermaid Diagram',
+    description: 'Diagram flowchart/sequence',
+    icon: <GitBranch className="h-4 w-4" />,
+    template: '```mermaid\nflowchart TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Result 1]\n    B -->|No| D[Result 2]\n```',
+  },
+  {
+    id: 'math',
+    command: '/math',
+    label: 'Math/LaTeX',
+    description: 'Rumus matematika',
+    icon: <Sigma className="h-4 w-4" />,
+    template: '$$\nE = mc^2\n$$',
+  },
+  {
+    id: 'inline-math',
+    command: '/imath',
+    label: 'Inline Math',
+    description: 'Rumus inline',
+    icon: <Sigma className="h-4 w-4" />,
+    template: '$x^2 + y^2 = z^2$',
   },
 ];
 

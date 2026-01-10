@@ -1,9 +1,11 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { GripVertical } from 'lucide-react';
+import { ScrollSync, ScrollSyncPane } from 'react-scroll-sync';
 import LiveEditor, { LiveEditorRef, SearchHighlight } from './LiveEditor';
 import MarkdownPreview from './MarkdownPreview';
 import { Settings, getEditorStyles, getEditorWidthClass } from '@/hooks/useSettings';
+import { useEditorStore } from '@/stores/editorStore';
 import { toast } from 'sonner';
 
 export type ViewMode = 'editor' | 'preview' | 'split';
@@ -13,7 +15,6 @@ const MIN_SPLIT_WIDTH = 768;
 // Minimum panel width percentage
 const MIN_PANEL_PERCENT = 25;
 const MAX_PANEL_PERCENT = 75;
-const DEFAULT_SPLIT_PERCENT = 50;
 
 interface SplitViewProps {
   content: string;
@@ -41,17 +42,13 @@ const SplitView = ({
   onViewModeChange,
 }: SplitViewProps) => {
   const liveEditorRef = useRef<LiveEditorRef>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const previewContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
 
-  // Track which panel initiated the scroll to prevent infinite loops
-  const scrollSourceRef = useRef<'editor' | 'preview' | null>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use zustand store for split percent
+  const { splitPercent, setSplitPercent } = useEditorStore();
 
   // Resizable split state
-  const [splitPercent, setSplitPercent] = useState(DEFAULT_SPLIT_PERCENT);
   const [isDragging, setIsDragging] = useState(false);
   const [canUseSplit, setCanUseSplit] = useState(true);
 
@@ -93,68 +90,6 @@ const SplitView = ({
     if (!settings) return 'max-w-3xl';
     return getEditorWidthClass(settings.editorWidth);
   }, [settings?.editorWidth]);
-
-  // Calculate scroll percentage
-  const getScrollPercentage = useCallback((element: HTMLElement): number => {
-    const scrollableHeight = element.scrollHeight - element.clientHeight;
-    if (scrollableHeight <= 0) return 0;
-    return element.scrollTop / scrollableHeight;
-  }, []);
-
-  // Apply scroll percentage to target element
-  const applyScrollPercentage = useCallback((element: HTMLElement, percentage: number) => {
-    const scrollableHeight = element.scrollHeight - element.clientHeight;
-    if (scrollableHeight <= 0) return;
-    element.scrollTop = percentage * scrollableHeight;
-  }, []);
-
-  // Handle editor scroll - sync to preview
-  const handleEditorScroll = useCallback(() => {
-    if (viewMode !== 'split') return;
-    if (scrollSourceRef.current === 'preview') return;
-    if (isDragging) return;
-
-    const editorContainer = editorContainerRef.current;
-    const previewContainer = previewContainerRef.current;
-    if (!editorContainer || !previewContainer) return;
-
-    scrollSourceRef.current = 'editor';
-
-    const percentage = getScrollPercentage(editorContainer);
-    applyScrollPercentage(previewContainer, percentage);
-
-    // Reset scroll source after a short delay
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-    scrollTimeoutRef.current = setTimeout(() => {
-      scrollSourceRef.current = null;
-    }, 100);
-  }, [viewMode, isDragging, getScrollPercentage, applyScrollPercentage]);
-
-  // Handle preview scroll - sync to editor
-  const handlePreviewScroll = useCallback(() => {
-    if (viewMode !== 'split') return;
-    if (scrollSourceRef.current === 'editor') return;
-    if (isDragging) return;
-
-    const editorContainer = editorContainerRef.current;
-    const previewContainer = previewContainerRef.current;
-    if (!editorContainer || !previewContainer) return;
-
-    scrollSourceRef.current = 'preview';
-
-    const percentage = getScrollPercentage(previewContainer);
-    applyScrollPercentage(editorContainer, percentage);
-
-    // Reset scroll source after a short delay
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-    scrollTimeoutRef.current = setTimeout(() => {
-      scrollSourceRef.current = null;
-    }, 100);
-  }, [viewMode, isDragging, getScrollPercentage, applyScrollPercentage]);
 
   // Divider drag handlers
   const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -199,21 +134,12 @@ const SplitView = ({
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleEnd);
     };
-  }, [isDragging]);
+  }, [isDragging, setSplitPercent]);
 
   // Reset split to 50/50 on double click
   const handleDividerDoubleClick = useCallback(() => {
-    setSplitPercent(DEFAULT_SPLIT_PERCENT);
-  }, []);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
+    setSplitPercent(50);
+  }, [setSplitPercent]);
 
   // Preview only mode
   if (viewMode === 'preview') {
@@ -262,85 +188,87 @@ const SplitView = ({
     );
   }
 
-  // Split view with resizable divider and sync scroll
+  // Split view with react-scroll-sync and resizable divider
   return (
-    <motion.div
-      ref={containerRef}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className={`flex h-screen h-[100dvh] w-full ${isDragging ? 'select-none cursor-col-resize' : ''}`}
-    >
-      {/* Editor Panel */}
-      <div
-        ref={editorContainerRef}
-        className="h-full overflow-y-auto overflow-x-hidden"
-        style={{ width: `${splitPercent}%` }}
-        onScroll={handleEditorScroll}
+    <ScrollSync proportional={true} vertical={true} horizontal={false}>
+      <motion.div
+        ref={containerRef}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className={`flex h-screen h-[100dvh] w-full ${isDragging ? 'select-none cursor-col-resize' : ''}`}
       >
-        <LiveEditor
-          ref={liveEditorRef}
-          value={content}
-          onChange={onChange}
-          placeholder={placeholder}
-          onFocus={onEditorFocus}
-          onBlur={onEditorBlur}
-          editorStyles={editorStyles}
-          editorWidthClass="max-w-full"
-          searchHighlights={searchHighlights}
-          typewriterMode={settings?.typewriterMode}
-          focusMode={settings?.focusMode}
-        />
-      </div>
+        {/* Editor Panel */}
+        <ScrollSyncPane>
+          <div
+            className="h-full overflow-y-auto overflow-x-hidden"
+            style={{ width: `${splitPercent}%` }}
+          >
+            <LiveEditor
+              ref={liveEditorRef}
+              value={content}
+              onChange={onChange}
+              placeholder={placeholder}
+              onFocus={onEditorFocus}
+              onBlur={onEditorBlur}
+              editorStyles={editorStyles}
+              editorWidthClass="max-w-full"
+              searchHighlights={searchHighlights}
+              typewriterMode={settings?.typewriterMode}
+              focusMode={settings?.focusMode}
+            />
+          </div>
+        </ScrollSyncPane>
 
-      {/* Resizable Divider */}
-      <div
-        ref={dividerRef}
-        className={`
-          relative flex-shrink-0 w-1 cursor-col-resize
-          bg-border/50 hover:bg-primary/50 active:bg-primary
-          transition-colors duration-150
-          group
-          ${isDragging ? 'bg-primary' : ''}
-        `}
-        onMouseDown={handleDividerMouseDown}
-        onTouchStart={handleDividerTouchStart}
-        onDoubleClick={handleDividerDoubleClick}
-        title="Drag untuk resize, double-click untuk reset"
-      >
-        {/* Drag handle indicator */}
-        <div className={`
-          absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-          flex items-center justify-center
-          w-4 h-8 rounded-full
-          bg-muted/80 border border-border/50
-          opacity-0 group-hover:opacity-100 transition-opacity
-          ${isDragging ? 'opacity-100 bg-primary/20' : ''}
-        `}>
-          <GripVertical className="w-3 h-3 text-muted-foreground" />
-        </div>
-      </div>
-
-      {/* Preview Panel */}
-      <div
-        ref={previewContainerRef}
-        className="h-full overflow-y-auto overflow-x-hidden bg-background"
-        style={{ width: `${100 - splitPercent}%` }}
-        onScroll={handlePreviewScroll}
-      >
-        <div className="sticky top-0 z-10 px-4 py-2.5 bg-muted/60 backdrop-blur-md border-b border-border/30">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Pratinjau
-            </span>
-            <span className="text-[10px] text-muted-foreground/60">
-              {Math.round(100 - splitPercent)}%
-            </span>
+        {/* Resizable Divider */}
+        <div
+          ref={dividerRef}
+          className={`
+            relative flex-shrink-0 w-1.5 cursor-col-resize
+            bg-border/40 hover:bg-primary/50 active:bg-primary
+            transition-colors duration-150
+            group
+            ${isDragging ? 'bg-primary' : ''}
+          `}
+          onMouseDown={handleDividerMouseDown}
+          onTouchStart={handleDividerTouchStart}
+          onDoubleClick={handleDividerDoubleClick}
+          title="Drag untuk resize, double-click untuk reset"
+        >
+          {/* Drag handle indicator */}
+          <div className={`
+            absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+            flex items-center justify-center
+            w-5 h-10 rounded-full
+            bg-muted/90 border border-border/50 shadow-sm
+            opacity-0 group-hover:opacity-100 transition-opacity
+            ${isDragging ? 'opacity-100 bg-primary/20' : ''}
+          `}>
+            <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
         </div>
-        <MarkdownPreview content={content} editorStyles={editorStyles} />
-      </div>
-    </motion.div>
+
+        {/* Preview Panel */}
+        <ScrollSyncPane>
+          <div
+            className="h-full overflow-y-auto overflow-x-hidden bg-background"
+            style={{ width: `calc(${100 - splitPercent}% - 6px)` }}
+          >
+            <div className="sticky top-0 z-10 px-4 py-2.5 bg-muted/60 backdrop-blur-md border-b border-border/30">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Pratinjau
+                </span>
+                <span className="text-[10px] text-muted-foreground/60 tabular-nums">
+                  {Math.round(100 - splitPercent)}%
+                </span>
+              </div>
+            </div>
+            <MarkdownPreview content={content} editorStyles={editorStyles} />
+          </div>
+        </ScrollSyncPane>
+      </motion.div>
+    </ScrollSync>
   );
 };
 
