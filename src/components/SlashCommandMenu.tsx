@@ -82,7 +82,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Code Block',
     description: 'Blok kode',
     icon: <Code className="h-4 w-4" />,
-    template: '```\n\n```',
+    template: '```\ncode\n```',
   },
   {
     id: 'inline-code',
@@ -138,7 +138,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     label: 'Mermaid Diagram',
     description: 'Diagram flowchart/sequence',
     icon: <GitBranch className="h-4 w-4" />,
-    template: '```mermaid\nflowchart TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Result 1]\n    B -->|No| D[Result 2]\n```',
+    template: '```mermaid\nflowchart TD\n    A[Start] --> B[Process]\n    B --> C[End]\n```',
   },
   {
     id: 'math',

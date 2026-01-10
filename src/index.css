@@ -1652,6 +1652,22 @@
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
+/* Loading indicator for mermaid diagrams */
+.mermaid-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 .mermaid-error {
   color: hsl(var(--destructive));
   background-color: hsl(var(--destructive) / 0.1);
@@ -1659,9 +1675,68 @@
   border-radius: 0.75rem;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.875rem;
-  white-space: pre-wrap;
   border: 1px dashed hsl(var(--destructive) / 0.3);
   text-align: left;
+}
+
+.mermaid-error-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--destructive));
+}
+
+.mermaid-error-message {
+  font-size: 0.8rem;
+  color: hsl(var(--destructive) / 0.9);
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+}
+
+.mermaid-error-hint {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.75rem;
+}
+
+.mermaid-error-code {
+  background: hsl(var(--destructive) / 0.05);
+  border: 1px solid hsl(var(--destructive) / 0.2);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0;
+  font-size: 0.75rem;
+  max-height: 150px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.mermaid-error-code code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* Hide Mermaid's built-in error rendering elements that appear outside our container */
+/* These are created by Mermaid library directly in the body */
+/* Be careful not to hide Radix UI portals */
+body > #d,
+body > [id^="dmermaid"],
+body > svg[id^="mermaid"],
+#d[style*="position: absolute"],
+#d.error {
+  display: none !important;
+}
+
+/* Also hide any stray mermaid error elements with error styling */
+[id^="d"][style*="color: rgb(255, 0, 0)"],
+[id^="d"][style*="color: red"],
+.mermaid-error-text,
+text.error-text {
+  display: none !important;
 }
 
 /* Dark mode mermaid adjustments */

@@ -45,9 +45,85 @@ export function parseMarkdown(text: string): string {
 
   let html = text;
 
-  // Store HTML blocks to preserve them
+  // Debug: Check for mermaid blocks in input
+  const hasMermaid = text.includes('```mermaid');
+  if (hasMermaid) {
+    console.log('[parseMarkdown] Input has mermaid block. Text length:', text.length);
+    // Check line endings
+    console.log('[parseMarkdown] Has CRLF:', text.includes('\r\n'), 'Has LF:', text.includes('\n'));
+  }
+
+  // ===== STEP 1: Extract and store special blocks with placeholders =====
+  // This prevents them from being corrupted by later processing
+
+  // Placeholder markers - using simple alphanumeric format
+  const MERMAID_PLACEHOLDER = 'ZZMERMAIDBLOCKZZ';
+  const CODE_PLACEHOLDER = 'ZZCODEBLOCKZZ';
+  const MATH_BLOCK_PLACEHOLDER = 'ZZMATHBLOCKZZ';
+
+  // Store for placeholders
+  const mermaidPlaceholders: string[] = [];
+  const codePlaceholders: string[] = [];
+  const mathBlockPlaceholders: string[] = [];
+
+  // Extract Mermaid blocks FIRST (before any other processing)
+  // Handle both LF and CRLF line endings
+  html = html.replace(/```mermaid\s*[\r\n]+([\s\S]*?)```/g, (_, code) => {
+    const trimmedCode = code.trim();
+    console.log('[Markdown] Found mermaid block:', trimmedCode.substring(0, 50));
+    if (!trimmedCode) return '';
+    mermaidDiagrams.push(trimmedCode);
+    const index = mermaidDiagrams.length - 1;
+    // Base64 encode the mermaid code to safely store in data attribute
+    // This avoids issues with special characters being interpreted as HTML
+    const encodedCode = btoa(unescape(encodeURIComponent(trimmedCode)));
+    const placeholder = `<div class="mermaid-diagram" data-mermaid-index="${index}" data-mermaid-code="${encodedCode}"><div class="mermaid-loading">Memuat diagram...</div></div>`;
+    mermaidPlaceholders.push(placeholder);
+    console.log('[Markdown] Created placeholder:', index);
+    return `${MERMAID_PLACEHOLDER}${mermaidPlaceholders.length - 1}${MERMAID_PLACEHOLDER}`;
+  });
+
+  // Extract code blocks (skip if already handled as mermaid)
+  html = html.replace(/```(\w*)[\r\n]?([\s\S]*?)```/g, (match, lang, code) => {
+    // Skip if this looks like a mermaid placeholder (shouldn't happen, but safeguard)
+    if (match.includes('ZZMERMAIDBLOCKZZ')) return match;
+    const trimmedCode = code.trim();
+    let highlighted: string;
+    try {
+      highlighted = lang && hljs.getLanguage(lang)
+        ? hljs.highlight(trimmedCode, { language: lang }).value
+        : hljs.highlightAuto(trimmedCode).value;
+    } catch {
+      highlighted = trimmedCode;
+    }
+    const placeholder = `<pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>`;
+    codePlaceholders.push(placeholder);
+    return `${CODE_PLACEHOLDER}${codePlaceholders.length - 1}${CODE_PLACEHOLDER}`;
+  });
+
+  // Extract math block expressions $$...$$
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathBlocks.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, true);
+    const placeholder = `<div class="math-block">${rendered}</div>`;
+    mathBlockPlaceholders.push(placeholder);
+    return `${MATH_BLOCK_PLACEHOLDER}${mathBlockPlaceholders.length - 1}${MATH_BLOCK_PLACEHOLDER}`;
+  });
+
+  // Extract \[...\] (LaTeX display math)
+  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (_, latex) => {
+    const trimmedLatex = latex.trim();
+    mathBlocks.push(trimmedLatex);
+    const rendered = renderMath(trimmedLatex, true);
+    const placeholder = `<div class="math-block">${rendered}</div>`;
+    mathBlockPlaceholders.push(placeholder);
+    return `${MATH_BLOCK_PLACEHOLDER}${mathBlockPlaceholders.length - 1}${MATH_BLOCK_PLACEHOLDER}`;
+  });
+
+  // ===== STEP 2: Store HTML blocks to preserve them =====
   const htmlBlocks: string[] = [];
-  const htmlBlockPlaceholder = '___HTML_BLOCK_PLACEHOLDER___';
+  const htmlBlockPlaceholder = 'ZZHTMLBLOCKZZ';
 
   // Preserve HTML blocks (block-level HTML tags)
   html = html.replace(/(<(?:p|div|table|thead|tbody|tr|td|th|img|a|center|br|hr)[^>]*>[\s\S]*?<\/(?:p|div|table|thead|tbody|tr|td|th|a|center)>|<(?:img|br|hr)[^>]*\/?>)/gi, (match) => {
@@ -57,7 +133,7 @@ export function parseMarkdown(text: string): string {
 
   // Store inline HTML tags
   const inlineHtml: string[] = [];
-  const inlineHtmlPlaceholder = '___INLINE_HTML___';
+  const inlineHtmlPlaceholder = 'ZZINLINEHTMLZZ';
   html = html.replace(/<[^>]+>/g, (match) => {
     inlineHtml.push(match);
     return `${inlineHtmlPlaceholder}${inlineHtml.length - 1}${inlineHtmlPlaceholder}`;
@@ -79,79 +155,14 @@ export function parseMarkdown(text: string): string {
     return htmlBlocks[parseInt(index)];
   });
 
-  // Math block expressions - support multiple formats
-  // Format 1: $$...$$ (most common)
-  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_, latex) => {
-    const trimmedLatex = latex.trim();
-    mathBlocks.push(trimmedLatex);
-    const rendered = renderMath(trimmedLatex, true);
-    return `<div class="math-block">${rendered}</div>`;
-  });
+  // ===== STEP 3: Process remaining markdown =====
 
-  // Format 2: \[...\] (LaTeX display math)
-  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (_, latex) => {
-    const trimmedLatex = latex.trim();
-    mathBlocks.push(trimmedLatex);
-    const rendered = renderMath(trimmedLatex, true);
-    return `<div class="math-block">${rendered}</div>`;
-  });
-
-  // Format 3: [...] at start of line (common shorthand) - only if contains math-like content
-  html = html.replace(/^\[((?:[^[\]]*(?:\\[a-zA-Z]+|[_^{}]|\\[{}])[^[\]]*)+)\]$/gm, (_, latex) => {
-    const trimmedLatex = latex.trim();
-    mathBlocks.push(trimmedLatex);
-    const rendered = renderMath(trimmedLatex, true);
-    return `<div class="math-block">${rendered}</div>`;
-  });
-
-  // Inline math expressions
-  // Format 1: $...$ (avoid matching $$)
+  // Inline math expressions $...$
   html = html.replace(/(?<!\$)\$(?!\$)([^\$\n]+?)\$(?!\$)/g, (_, latex) => {
     const trimmedLatex = latex.trim();
     mathInlines.push(trimmedLatex);
     const rendered = renderMath(trimmedLatex, false);
     return `<span class="math-inline">${rendered}</span>`;
-  });
-
-  // Format 2: \(...\) (LaTeX inline math)
-  html = html.replace(/\\\(([^)]+?)\\\)/g, (_, latex) => {
-    const trimmedLatex = latex.trim();
-    mathInlines.push(trimmedLatex);
-    const rendered = renderMath(trimmedLatex, false);
-    return `<span class="math-inline">${rendered}</span>`;
-  });
-
-  // Format 3: (...) containing math-like content (LaTeX commands)
-  html = html.replace(/\(([^()]*(?:\\[a-zA-Z]+|[_^{}])[^()]*)\)/g, (_, latex) => {
-    const trimmedLatex = latex.trim();
-    // Only process if it looks like math (contains LaTeX commands)
-    if (/\\[a-zA-Z]+/.test(trimmedLatex) || /[_^{}]/.test(trimmedLatex)) {
-      mathInlines.push(trimmedLatex);
-      const rendered = renderMath(trimmedLatex, false);
-      return `<span class="math-inline">${rendered}</span>`;
-    }
-    return `(${latex})`;
-  });
-
-  // Mermaid diagrams - special handling for ```mermaid blocks
-  html = html.replace(/```mermaid\n?([\s\S]*?)```/g, (_, code) => {
-    const trimmedCode = code.trim();
-    mermaidDiagrams.push(trimmedCode);
-    const index = mermaidDiagrams.length - 1;
-    return `<div class="mermaid-diagram" data-mermaid-index="${index}">${trimmedCode}</div>`;
-  });
-
-  // Code blocks with syntax highlighting (must be before other replacements)
-  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const trimmedCode = code.trim();
-    try {
-      const highlighted = lang && hljs.getLanguage(lang)
-        ? hljs.highlight(trimmedCode, { language: lang }).value
-        : hljs.highlightAuto(trimmedCode).value;
-      return `<pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>`;
-    } catch {
-      return `<pre><code class="hljs">${trimmedCode}</code></pre>`;
-    }
   });
 
   // Checklist / Task list - must be before unordered lists
@@ -250,6 +261,8 @@ export function parseMarkdown(text: string): string {
     const trimmed = line.trim();
     if (!trimmed) return '';
     if (trimmed.startsWith('<')) return line;
+    // Don't wrap placeholder lines (using ZZ marker)
+    if (trimmed.includes('ZZ') && trimmed.includes('BLOCKZZ')) return line;
     return `<p>${line}</p>`;
   });
 
@@ -260,6 +273,37 @@ export function parseMarkdown(text: string): string {
 
   // Fix consecutive blockquotes
   html = html.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
+
+  // ===== STEP 4: Restore special blocks from placeholders =====
+
+  // Restore mermaid blocks
+  html = html.replace(new RegExp(`${MERMAID_PLACEHOLDER}(\\d+)${MERMAID_PLACEHOLDER}`, 'g'), (_, index) => {
+    const result = mermaidPlaceholders[parseInt(index)] || '';
+    console.log('[parseMarkdown] Restoring mermaid placeholder', index, '-> length:', result.length);
+    return result;
+  });
+
+  // Restore code blocks
+  html = html.replace(new RegExp(`${CODE_PLACEHOLDER}(\\d+)${CODE_PLACEHOLDER}`, 'g'), (_, index) => {
+    return codePlaceholders[parseInt(index)] || '';
+  });
+
+  // Restore math blocks
+  html = html.replace(new RegExp(`${MATH_BLOCK_PLACEHOLDER}(\\d+)${MATH_BLOCK_PLACEHOLDER}`, 'g'), (_, index) => {
+    return mathBlockPlaceholders[parseInt(index)] || '';
+  });
+
+  // Clean up any paragraphs wrapping block elements
+  html = html.replace(/<p>(<div[^>]*>)/g, '$1');
+  html = html.replace(/(<\/div>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<pre>)/g, '$1');
+  html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+
+  // Debug: Check final output
+  if (hasMermaid) {
+    console.log('[parseMarkdown] Final HTML has mermaid-diagram?', html.includes('mermaid-diagram'));
+    console.log('[parseMarkdown] mermaidDiagrams array length:', mermaidDiagrams.length);
+  }
 
   return html;
 }
