@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  saveDocumentsToIDB,
+  loadDocumentsFromIDB,
+  saveFoldersToIDB,
+  loadFoldersFromIDB,
+  saveTagsToIDB,
+  loadTagsFromIDB,
+} from '@/lib/storage';
 
 // Version history entry
 export interface DocumentVersion {
@@ -28,11 +36,14 @@ export interface Document {
   isPinned: boolean;
 }
 
+const MAX_VERSIONS = 20; // Maximum versions to keep per document
+const VERSION_INTERVAL = 120000; // Minimum 2 minutes between auto-versions
+const SAVE_DEBOUNCE = 500; // Debounce saves
+
+// localStorage keys for migration only
 const STORAGE_KEY = 'catatan_documents';
 const FOLDERS_KEY = 'catatan_folders';
 const TAGS_KEY = 'catatan_tags';
-const MAX_VERSIONS = 20; // Maximum versions to keep per document
-const VERSION_INTERVAL = 60000; // Minimum 1 minute between auto-versions
 
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -77,71 +88,129 @@ export const useDocuments = () => {
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load documents from localStorage
+  // Refs for debounced saving
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingDocsRef = useRef<Document[] | null>(null);
+  const idbSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load documents from IndexedDB with localStorage migration
   useEffect(() => {
-    try {
-      // Load documents
-      const storedDocs = localStorage.getItem(STORAGE_KEY);
-      if (storedDocs) {
-        const parsed = JSON.parse(storedDocs) as Document[];
-        // Migrate old documents without new fields
-        const migrated = parsed.map(doc => ({
-          ...doc,
-          folderId: doc.folderId ?? null,
-          tags: doc.tags ?? [],
-          versions: doc.versions ?? [],
-          isPinned: doc.isPinned ?? false,
-        }));
-        setDocuments(migrated.sort((a, b) => {
-          // Pinned first, then by updatedAt
+    const loadData = async () => {
+      try {
+        // Try to load from IndexedDB first
+        let docs = await loadDocumentsFromIDB();
+
+        // Migrate from localStorage if IndexedDB is empty
+        if (docs.length === 0) {
+          const storedDocs = localStorage.getItem(STORAGE_KEY);
+          if (storedDocs) {
+            const parsed = JSON.parse(storedDocs) as Document[];
+            docs = parsed.map(doc => ({
+              ...doc,
+              folderId: doc.folderId ?? null,
+              tags: doc.tags ?? [],
+              versions: doc.versions ?? [],
+              isPinned: doc.isPinned ?? false,
+            }));
+            // Migrate to IndexedDB and remove from localStorage
+            await saveDocumentsToIDB(docs);
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+
+        // Sort documents
+        docs.sort((a, b) => {
           if (a.isPinned && !b.isPinned) return -1;
           if (!a.isPinned && b.isPinned) return 1;
           return b.updatedAt - a.updatedAt;
-        }));
-      }
+        });
+        setDocuments(docs);
 
-      // Load folders
-      const storedFolders = localStorage.getItem(FOLDERS_KEY);
-      if (storedFolders) {
-        setFolders(JSON.parse(storedFolders));
-      }
+        // Load folders from IndexedDB with localStorage migration
+        let fldrs = await loadFoldersFromIDB();
+        if (fldrs.length === 0) {
+          const storedFolders = localStorage.getItem(FOLDERS_KEY);
+          if (storedFolders) {
+            fldrs = JSON.parse(storedFolders);
+            await saveFoldersToIDB(fldrs);
+            localStorage.removeItem(FOLDERS_KEY);
+          }
+        }
+        setFolders(fldrs);
 
-      // Load tags
-      const storedTags = localStorage.getItem(TAGS_KEY);
-      if (storedTags) {
-        setAllTags(JSON.parse(storedTags));
+        // Load tags from IndexedDB with localStorage migration
+        let tags = await loadTagsFromIDB();
+        if (tags.length === 0) {
+          const storedTags = localStorage.getItem(TAGS_KEY);
+          if (storedTags) {
+            tags = JSON.parse(storedTags);
+            await saveTagsToIDB(tags);
+            localStorage.removeItem(TAGS_KEY);
+          }
+        }
+        setAllTags(tags);
+
+      } catch (err) {
+        console.error('Failed to load documents from IndexedDB:', err);
       }
-    } catch (err) {
-      console.error('Failed to load documents:', err);
-    }
-    setIsLoaded(true);
+      setIsLoaded(true);
+    };
+
+    loadData();
   }, []);
 
-  // Save documents to localStorage
+  // Save documents to IndexedDB with debounce
   const saveToStorage = useCallback((docs: Document[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
-    } catch (err) {
-      console.error('Failed to save documents:', err);
+    pendingDocsRef.current = docs;
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
     }
+
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        if (pendingDocsRef.current) {
+          // Save to IndexedDB only
+          saveDocumentsToIDB(pendingDocsRef.current).catch(err => {
+            console.error('Failed to save to IndexedDB:', err);
+          });
+
+          pendingDocsRef.current = null;
+        }
+      } catch (err) {
+        console.error('Failed to save documents:', err);
+      }
+    }, SAVE_DEBOUNCE);
   }, []);
 
-  // Save folders to localStorage
+  // Cleanup: flush pending saves on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+      if (idbSaveTimerRef.current) {
+        clearTimeout(idbSaveTimerRef.current);
+      }
+      // Flush any pending saves to IndexedDB
+      if (pendingDocsRef.current) {
+        saveDocumentsToIDB(pendingDocsRef.current);
+      }
+    };
+  }, []);
+
+  // Save folders to IndexedDB
   const saveFoldersToStorage = useCallback((fldrs: Folder[]) => {
-    try {
-      localStorage.setItem(FOLDERS_KEY, JSON.stringify(fldrs));
-    } catch (err) {
-      console.error('Failed to save folders:', err);
-    }
+    saveFoldersToIDB(fldrs).catch(err => {
+      console.error('Failed to save folders to IndexedDB:', err);
+    });
   }, []);
 
-  // Save tags to localStorage
+  // Save tags to IndexedDB
   const saveTagsToStorage = useCallback((tags: string[]) => {
-    try {
-      localStorage.setItem(TAGS_KEY, JSON.stringify(tags));
-    } catch (err) {
-      console.error('Failed to save tags:', err);
-    }
+    saveTagsToIDB(tags).catch(err => {
+      console.error('Failed to save tags to IndexedDB:', err);
+    });
   }, []);
 
   // Create new document
@@ -300,8 +369,10 @@ export const useDocuments = () => {
     });
   }, [saveToStorage]);
 
-  // Restore document version
-  const restoreVersion = useCallback((docId: string, versionId: string) => {
+  // Restore document version - returns the restored content
+  const restoreVersion = useCallback((docId: string, versionId: string): string | null => {
+    let restoredContent: string | null = null;
+
     setDocuments(prev => {
       const updated = prev.map(doc => {
         if (doc.id === docId) {
@@ -316,6 +387,8 @@ export const useDocuments = () => {
               wordCount: countWords(doc.content),
             }].slice(-MAX_VERSIONS);
 
+            restoredContent = version.content;
+
             return {
               ...doc,
               content: version.content,
@@ -324,6 +397,42 @@ export const useDocuments = () => {
               versions: newVersions,
             };
           }
+        }
+        return doc;
+      });
+      saveToStorage(updated);
+      return updated;
+    });
+
+    return restoredContent;
+  }, [saveToStorage]);
+
+  // Delete a single version
+  const deleteVersion = useCallback((docId: string, versionId: string) => {
+    setDocuments(prev => {
+      const updated = prev.map(doc => {
+        if (doc.id === docId) {
+          return {
+            ...doc,
+            versions: doc.versions.filter(v => v.id !== versionId),
+          };
+        }
+        return doc;
+      });
+      saveToStorage(updated);
+      return updated;
+    });
+  }, [saveToStorage]);
+
+  // Clear all versions for a document
+  const clearAllVersions = useCallback((docId: string) => {
+    setDocuments(prev => {
+      const updated = prev.map(doc => {
+        if (doc.id === docId) {
+          return {
+            ...doc,
+            versions: [],
+          };
         }
         return doc;
       });
@@ -424,6 +533,8 @@ export const useDocuments = () => {
     addTagToDocument,
     removeTagFromDocument,
     restoreVersion,
+    deleteVersion,
+    clearAllVersions,
     createFolder,
     updateFolder,
     deleteFolder,

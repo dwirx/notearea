@@ -171,6 +171,8 @@ const SearchReplace = ({
                     placeholder="Cari teks..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.target.select()}
                     className="pl-9 pr-16 h-9 text-sm"
                   />
                   {query && (
@@ -237,6 +239,7 @@ const SearchReplace = ({
                   placeholder="Ganti dengan..."
                   value={replaceText}
                   onChange={(e) => setReplaceText(e.target.value)}
+                  onKeyDown={(e) => e.stopPropagation()}
                   className="pl-9 h-9 text-sm"
                 />
               </div>

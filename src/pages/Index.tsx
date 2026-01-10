@@ -76,6 +76,8 @@ const Index = () => {
     updateFolder,
     deleteFolder,
     restoreVersion,
+    deleteVersion,
+    clearAllVersions,
   } = useDocuments();
 
   const { isDark, toggleTheme, currentTheme, setTheme } = useTheme();
@@ -544,7 +546,6 @@ const Index = () => {
           onOpenHistory={() => setShowVersionHistory(true)}
           showTOC={showTOC}
           isZenMode={isZenMode}
-          hasVersions={!!currentDocument && currentDocument.versions.length > 0}
         />
       )}
 
@@ -563,6 +564,7 @@ Ketik / untuk opsi insert cepat."
           editorRef={textareaRef}
           settings={settings}
           searchHighlights={searchHighlights}
+          onViewModeChange={setViewMode}
         />
       </main>
 
@@ -707,12 +709,37 @@ Ketik / untuk opsi insert cepat."
           versions={currentDocument.versions}
           currentContent={content}
           onRestoreVersion={(versionId) => {
-            restoreVersion(currentDocId, versionId);
-            // Reload the content after restoring
-            const doc = documents.find(d => d.id === currentDocId);
-            if (doc) {
-              setContent(doc.content);
+            const restoredContent = restoreVersion(currentDocId, versionId);
+            if (restoredContent !== null) {
+              // Update content state directly with the restored content
+              setContent(restoredContent);
+
+              // Update URL with restored content
+              const compressed = compressText(restoredContent);
+              window.history.replaceState(null, '', `#${compressed}`);
+
+              // Update last saved timestamp
+              setLastSaved(Date.now());
+              hasUnsavedChanges.current = false;
+
+              // Focus editor and reset cursor position after a short delay
+              setTimeout(() => {
+                const textarea = textareaRef.current;
+                if (textarea) {
+                  textarea.focus();
+                  // Set cursor to end of content
+                  textarea.selectionStart = textarea.selectionEnd = restoredContent.length;
+                }
+              }, 100);
+
+              toast.success('Versi berhasil dipulihkan');
             }
+          }}
+          onDeleteVersion={(versionId) => {
+            deleteVersion(currentDocId, versionId);
+          }}
+          onClearAllVersions={() => {
+            clearAllVersions(currentDocId);
           }}
         />
       )}

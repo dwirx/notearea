@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { saveAppSettingsToIDB, loadAppSettingsFromIDB } from '@/lib/storage';
 
 export interface Settings {
   fontSize: number;
@@ -28,36 +29,50 @@ const DEFAULT_SETTINGS: Settings = {
   focusMode: false,
 };
 
+// localStorage key for migration only
 const STORAGE_KEY = 'notearea-settings';
 
 /**
- * Hook for managing app settings with localStorage persistence
+ * Hook for managing app settings with IndexedDB persistence
  */
 export const useSettings = () => {
   const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load settings from localStorage on mount
+  // Load settings from IndexedDB on mount with localStorage migration
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettingsState({ ...DEFAULT_SETTINGS, ...parsed });
+    const loadSettings = async () => {
+      try {
+        // Try to load from IndexedDB first
+        const stored = await loadAppSettingsFromIDB();
+        if (stored) {
+          setSettingsState({ ...DEFAULT_SETTINGS, ...stored as Partial<Settings> });
+        } else {
+          // Migrate from localStorage if IndexedDB is empty
+          const localStored = localStorage.getItem(STORAGE_KEY);
+          if (localStored) {
+            const parsed = JSON.parse(localStored);
+            const migratedSettings = { ...DEFAULT_SETTINGS, ...parsed };
+            setSettingsState(migratedSettings);
+            // Save to IndexedDB and remove from localStorage
+            await saveAppSettingsToIDB(migratedSettings);
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-    setIsLoaded(true);
+      setIsLoaded(true);
+    };
+
+    loadSettings();
   }, []);
 
-  // Save settings to localStorage
+  // Save settings to IndexedDB
   const saveSettings = useCallback((newSettings: Settings) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-    } catch (error) {
+    saveAppSettingsToIDB(newSettings).catch(error => {
       console.error('Failed to save settings:', error);
-    }
+    });
   }, []);
 
   // Update a single setting

@@ -9,6 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,6 +23,8 @@ interface VersionHistoryProps {
   versions: DocumentVersion[];
   currentContent: string;
   onRestoreVersion: (versionId: string) => void;
+  onDeleteVersion?: (versionId: string) => void;
+  onClearAllVersions?: () => void;
 }
 
 const formatDate = (timestamp: number): string => {
@@ -63,14 +67,19 @@ const VersionHistory = ({
   versions,
   currentContent,
   onRestoreVersion,
+  onDeleteVersion,
+  onClearAllVersions,
 }: VersionHistoryProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const sortedVersions = [...versions].sort((a, b) => b.timestamp - a.timestamp);
 
   const handleToggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+    setDeleteConfirmId(null);
   };
 
   const handlePreview = (content: string) => {
@@ -80,6 +89,21 @@ const VersionHistory = ({
   const handleRestore = (versionId: string) => {
     onRestoreVersion(versionId);
     onClose();
+  };
+
+  const handleDeleteVersion = (versionId: string) => {
+    if (onDeleteVersion) {
+      onDeleteVersion(versionId);
+      setDeleteConfirmId(null);
+      setExpandedId(null);
+    }
+  };
+
+  const handleClearAll = () => {
+    if (onClearAllVersions) {
+      onClearAllVersions();
+      setShowClearConfirm(false);
+    }
   };
 
   return (
@@ -119,15 +143,76 @@ const VersionHistory = ({
                   </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-              >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {/* Clear All Button */}
+                {sortedVersions.length > 0 && onClearAllVersions && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowClearConfirm(true)}
+                    className="h-8 px-2 sm:px-3 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Hapus Semua</span>
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </div>
             </div>
+
+            {/* Clear All Confirmation */}
+            <AnimatePresence>
+              {showClearConfirm && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden border-b border-border/50"
+                >
+                  <div className="p-4 bg-destructive/5">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-destructive/10 flex-shrink-0">
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          Hapus semua riwayat versi?
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Tindakan ini tidak dapat dibatalkan. Semua {versions.length} versi akan dihapus permanen.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowClearConfirm(false)}
+                            className="h-8 text-xs"
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleClearAll}
+                            className="h-8 text-xs"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                            Ya, Hapus Semua
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Content */}
             <ScrollArea className="flex-1">
@@ -166,6 +251,7 @@ const VersionHistory = ({
                     </h3>
                     {sortedVersions.map((version) => {
                       const isExpanded = expandedId === version.id;
+                      const isDeleteConfirm = deleteConfirmId === version.id;
 
                       return (
                         <motion.div
@@ -220,27 +306,75 @@ const VersionHistory = ({
                                     </p>
                                   </div>
 
+                                  {/* Delete Confirmation */}
+                                  <AnimatePresence>
+                                    {isDeleteConfirm && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                      >
+                                        <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/20">
+                                          <p className="text-xs text-destructive mb-2">
+                                            Hapus versi ini? Tidak dapat dibatalkan.
+                                          </p>
+                                          <div className="flex gap-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => setDeleteConfirmId(null)}
+                                              className="flex-1 h-7 text-xs"
+                                            >
+                                              Batal
+                                            </Button>
+                                            <Button
+                                              variant="destructive"
+                                              size="sm"
+                                              onClick={() => handleDeleteVersion(version.id)}
+                                              className="flex-1 h-7 text-xs"
+                                            >
+                                              Hapus
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+
                                   {/* Actions */}
-                                  <div className="flex gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handlePreview(version.content)}
-                                      className="flex-1 h-8 text-xs gap-1.5"
-                                    >
-                                      <Eye className="h-3.5 w-3.5" />
-                                      Lihat
-                                    </Button>
-                                    <Button
-                                      variant="default"
-                                      size="sm"
-                                      onClick={() => handleRestore(version.id)}
-                                      className="flex-1 h-8 text-xs gap-1.5"
-                                    >
-                                      <RotateCcw className="h-3.5 w-3.5" />
-                                      Pulihkan
-                                    </Button>
-                                  </div>
+                                  {!isDeleteConfirm && (
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePreview(version.content)}
+                                        className="flex-1 h-8 text-xs gap-1.5"
+                                      >
+                                        <Eye className="h-3.5 w-3.5" />
+                                        Lihat
+                                      </Button>
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => handleRestore(version.id)}
+                                        className="flex-1 h-8 text-xs gap-1.5"
+                                      >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        Pulihkan
+                                      </Button>
+                                      {onDeleteVersion && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setDeleteConfirmId(version.id)}
+                                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )}
 
                                   {/* Full Date */}
                                   <p className="text-[10px] text-muted-foreground text-center">
@@ -261,7 +395,7 @@ const VersionHistory = ({
             {/* Footer */}
             <div className="px-4 py-3 sm:py-4 border-t border-border/50 bg-muted/30">
               <p className="text-[10px] xs:text-xs text-muted-foreground text-center">
-                Versi disimpan otomatis setiap 1 menit
+                Versi disimpan otomatis setiap 1 menit • Maks. 20 versi
               </p>
             </div>
           </motion.div>

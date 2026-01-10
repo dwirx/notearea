@@ -335,6 +335,10 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Flag to prevent selectionchange listener from interfering with programmatic selection
+  const isSettingSelectionRef = useRef(false);
+  const selectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Detect mobile
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -382,6 +386,9 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
 
   // Update cursor position and menu position
   const handleSelectionChange = useCallback(() => {
+    // Skip if we're programmatically setting selection
+    if (isSettingSelectionRef.current) return;
+
     const textarea = textareaRef.current;
     if (textarea && document.activeElement === textarea) {
       setCursorPosition(textarea.selectionStart);
@@ -403,25 +410,37 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
     const start = cursorPosition - deleteCount;
     const newValue = value.slice(0, start) + template + value.slice(cursorPosition);
 
+    // Set flag to prevent selectionchange from interfering
+    isSettingSelectionRef.current = true;
+    if (selectionTimeoutRef.current) {
+      clearTimeout(selectionTimeoutRef.current);
+    }
+
     onChange(newValue);
 
-    // Position cursor appropriately
+    // Position cursor appropriately with double RAF
     requestAnimationFrame(() => {
-      // For code blocks, position cursor between the fences
-      if (template.includes('```\n\n```')) {
-        const newPos = start + 4; // After the opening ```\n
-        textarea.selectionStart = textarea.selectionEnd = newPos;
-      } else if (template.includes('](')) {
-        // For links/images, position at the URL part
-        const urlStart = start + template.indexOf('](') + 2;
-        textarea.selectionEnd = start + template.indexOf(')');
-        textarea.selectionStart = urlStart;
-      } else {
-        // Default: position at end of template
-        const newPos = start + template.length;
-        textarea.selectionStart = textarea.selectionEnd = newPos;
-      }
-      textarea.focus();
+      requestAnimationFrame(() => {
+        // For code blocks, position cursor between the fences
+        if (template.includes('```\n\n```')) {
+          const newPos = start + 4; // After the opening ```\n
+          textarea.selectionStart = textarea.selectionEnd = newPos;
+        } else if (template.includes('](')) {
+          // For links/images, position at the URL part
+          const urlStart = start + template.indexOf('](') + 2;
+          textarea.selectionEnd = start + template.indexOf(')');
+          textarea.selectionStart = urlStart;
+        } else {
+          // Default: position at end of template
+          const newPos = start + template.length;
+          textarea.selectionStart = textarea.selectionEnd = newPos;
+        }
+        textarea.focus();
+
+        selectionTimeoutRef.current = setTimeout(() => {
+          isSettingSelectionRef.current = false;
+        }, 50);
+      });
     });
   }, [value, cursorPosition, onChange]);
 
@@ -470,6 +489,15 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
   // Focus on mount
   useEffect(() => {
     textareaRef.current?.focus();
+  }, []);
+
+  // Cleanup selection timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (selectionTimeoutRef.current) {
+        clearTimeout(selectionTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Hide tooltip when clicking outside or scrolling
@@ -530,10 +558,31 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
     selectionStart: number,
     selectionEnd: number
   ) => {
+    // Set flag to prevent selectionchange from interfering
+    isSettingSelectionRef.current = true;
+
+    // Clear any pending selection timeout
+    if (selectionTimeoutRef.current) {
+      clearTimeout(selectionTimeoutRef.current);
+    }
+
     onChange(nextValue);
+
+    // Use double requestAnimationFrame to ensure DOM is fully updated
     requestAnimationFrame(() => {
-      textarea.selectionStart = selectionStart;
-      textarea.selectionEnd = selectionEnd;
+      requestAnimationFrame(() => {
+        if (textarea && document.body.contains(textarea)) {
+          textarea.selectionStart = selectionStart;
+          textarea.selectionEnd = selectionEnd;
+
+          // Reset flag after a short delay to allow natural selection changes
+          selectionTimeoutRef.current = setTimeout(() => {
+            isSettingSelectionRef.current = false;
+          }, 50);
+        } else {
+          isSettingSelectionRef.current = false;
+        }
+      });
     });
   }, [onChange]);
 
@@ -891,10 +940,22 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
       const end = textarea.selectionEnd;
 
       const newValue = value.substring(0, start) + '  ' + value.substring(end);
+
+      // Use the same robust selection mechanism
+      isSettingSelectionRef.current = true;
+      if (selectionTimeoutRef.current) {
+        clearTimeout(selectionTimeoutRef.current);
+      }
+
       onChange(newValue);
 
       requestAnimationFrame(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + 2;
+        requestAnimationFrame(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 2;
+          selectionTimeoutRef.current = setTimeout(() => {
+            isSettingSelectionRef.current = false;
+          }, 50);
+        });
       });
     }
 
@@ -933,13 +994,26 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
     const imageMarkdown = `![${altText}](${dataUrl})`;
 
     const newValue = value.slice(0, start) + imageMarkdown + value.slice(end);
+
+    // Set flag to prevent selectionchange from interfering
+    isSettingSelectionRef.current = true;
+    if (selectionTimeoutRef.current) {
+      clearTimeout(selectionTimeoutRef.current);
+    }
+
     onChange(newValue);
 
-    // Position cursor after the inserted image
+    // Position cursor after the inserted image with double RAF
     requestAnimationFrame(() => {
-      const newPos = start + imageMarkdown.length;
-      textarea.selectionStart = textarea.selectionEnd = newPos;
-      textarea.focus();
+      requestAnimationFrame(() => {
+        const newPos = start + imageMarkdown.length;
+        textarea.selectionStart = textarea.selectionEnd = newPos;
+        textarea.focus();
+
+        selectionTimeoutRef.current = setTimeout(() => {
+          isSettingSelectionRef.current = false;
+        }, 50);
+      });
     });
   }, [value, onChange]);
 
