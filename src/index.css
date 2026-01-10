@@ -1211,3 +1211,141 @@
     max-width: 52rem;
   }
 }
+
+/* Focus Mode - Fade non-active lines */
+.focus-mode-active .live-highlight {
+  opacity: 0.35;
+  transition: opacity 0.15s ease-out;
+}
+
+.focus-mode-active:focus-within .live-highlight {
+  opacity: 1;
+}
+
+/* Typewriter mode - center scroll indicator */
+.typewriter-mode .live-textarea {
+  scroll-behavior: smooth;
+}
+
+/* Typewriter mode gradient overlay for focus */
+.typewriter-mode::before,
+.typewriter-mode::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 20vh;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.typewriter-mode::before {
+  top: 0;
+  background: linear-gradient(to bottom, hsl(var(--editor-bg)), transparent);
+}
+
+.typewriter-mode::after {
+  bottom: 0;
+  background: linear-gradient(to top, hsl(var(--editor-bg)), transparent);
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 639px) {
+  /* Better touch targets for all interactive elements */
+  .floating-menu button,
+  .floating-menu [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Smoother scrolling on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Better status bar positioning on mobile */
+  .fixed.bottom-3 {
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+  }
+
+  /* Improved touch-friendly spacing */
+  .markdown-preview {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Better tablet experience */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Optimized sidebar width */
+  .documents-sidebar {
+    width: 360px;
+  }
+
+  /* Better split view proportions */
+  .split-view-editor {
+    width: 50%;
+  }
+
+  .split-view-preview {
+    width: 50%;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1024px) {
+  /* Hover states for interactive elements */
+  .floating-menu:hover {
+    box-shadow:
+      0 12px 28px -5px hsl(var(--menu-shadow) / 0.2),
+      0 10px 12px -6px hsl(var(--menu-shadow) / 0.15),
+      0 0 0 1px hsl(var(--border) / 0.6);
+  }
+
+  /* Better document card hover states */
+  .document-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.1);
+  }
+}
+
+/* Print styles for better PDF export */
+@media print {
+  .floating-menu,
+  .status-bar,
+  .documents-sidebar,
+  .command-palette {
+    display: none !important;
+  }
+
+  .markdown-preview {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .markdown-preview pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 30 20% 70%;
+  }
+
+  .dark {
+    --border: 30 20% 30%;
+  }
+}
+
+/* Reduced data mode - lighter animations */
+@media (prefers-reduced-data: reduce) {
+  .floating-menu,
+  .command-palette,
+  .documents-sidebar {
+    backdrop-filter: none;
+  }
+}

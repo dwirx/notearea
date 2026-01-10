@@ -10,6 +10,8 @@ import DocumentHeader from '@/components/DocumentHeader';
 import TableOfContents from '@/components/TableOfContents';
 import SearchReplace from '@/components/SearchReplace';
 import SettingsPanel from '@/components/SettingsPanel';
+import CommandPalette from '@/components/CommandPalette';
+import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditorCommands } from '@/hooks/useEditorCommands';
@@ -32,12 +34,15 @@ const Index = () => {
   const [showTOC, setShowTOC] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const hasUnsavedChanges = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Search state for highlighting
   const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
@@ -263,18 +268,100 @@ const Index = () => {
     setTimeout(() => setIsEditorFocused(false), 150);
   }, []);
 
-  // Keyboard shortcut for search (Ctrl/Cmd + F)
+  // Keyboard shortcuts (Ctrl/Cmd + F, K, /, etc.)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Command Palette: Ctrl/Cmd + K
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+        return;
+      }
+
+      // Search: Ctrl/Cmd + F
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setShowSearch(true);
+        return;
+      }
+
+      // Shortcuts panel: Ctrl/Cmd + /
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
+
+      // Save: Ctrl/Cmd + S
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveDocument();
+        return;
+      }
+
+      // New document: Ctrl/Cmd + N
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleNewDocument();
+        return;
+      }
+
+      // Toggle theme: Ctrl/Cmd + Shift + D
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'd') {
+        e.preventDefault();
+        toggleTheme();
+        return;
+      }
+
+      // Toggle Zen mode: Ctrl/Cmd + Shift + Z
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        toggleZenMode();
+        return;
+      }
+
+      // Table of Contents: Ctrl/Cmd + Shift + T
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 't') {
+        e.preventDefault();
+        setShowTOC(prev => !prev);
+        return;
+      }
+
+      // View mode shortcuts: Ctrl/Cmd + 1, 2, 3
+      if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+        e.preventDefault();
+        setViewMode('editor');
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+        e.preventDefault();
+        setViewMode('preview');
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+        e.preventDefault();
+        setViewMode('split');
+        return;
+      }
+
+      // Settings: Ctrl/Cmd + ,
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        setShowSettings(true);
+        return;
+      }
+
+      // Open documents: Ctrl/Cmd + O
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        setShowSidebar(true);
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [handleSaveDocument, handleNewDocument, toggleTheme, toggleZenMode]);
 
   // Navigate to position in editor
   const handleNavigateToPosition = useCallback((position: number) => {
@@ -554,6 +641,52 @@ Ketik / untuk opsi insert cepat."
         isOpen={showQR}
         onClose={() => setShowQR(false)}
         url={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNew={handleNewDocument}
+        onSave={handleSaveDocument}
+        onShare={handleShare}
+        onDownloadHtml={handleDownloadHtml}
+        onDownloadText={handleDownloadText}
+        onDownloadMarkdown={handleDownloadMarkdown}
+        onExportBackup={handleExportBackup}
+        onImportBackup={() => fileInputRef.current?.click()}
+        onShowQR={() => setShowQR(true)}
+        onViewModeChange={setViewMode}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        isZenMode={isZenMode}
+        onToggleZenMode={toggleZenMode}
+        onOpenDocuments={() => setShowSidebar(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenSearch={() => setShowSearch(true)}
+        onOpenTOC={() => setShowTOC(true)}
+        onOpenShortcuts={() => setShowShortcuts(true)}
+      />
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcuts
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
+
+      {/* Hidden file input for import backup */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleImportBackup(file);
+            e.target.value = '';
+          }
+        }}
+        className="hidden"
       />
     </motion.div>
   );

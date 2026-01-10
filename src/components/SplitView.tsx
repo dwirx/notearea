@@ -70,6 +70,8 @@ const SplitView = ({
         editorStyles={editorStyles}
         editorWidthClass={editorWidthClass}
         searchHighlights={searchHighlights}
+        typewriterMode={settings?.typewriterMode}
+        focusMode={settings?.focusMode}
       />
     );
   }
@@ -95,6 +97,8 @@ const SplitView = ({
             editorStyles={editorStyles}
             editorWidthClass="max-w-full"
             searchHighlights={searchHighlights}
+            typewriterMode={settings?.typewriterMode}
+            focusMode={settings?.focusMode}
           />
         </div>
       </div>

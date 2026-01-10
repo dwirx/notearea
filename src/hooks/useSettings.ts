@@ -10,6 +10,8 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system';
   colorTheme: string; // Theme ID from themes.ts
   editorWidth: 'narrow' | 'medium' | 'wide' | 'full';
+  typewriterMode: boolean; // Keep current line centered while typing
+  focusMode: boolean; // Fade non-active paragraphs
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +24,8 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   colorTheme: 'default-light', // Will be adjusted based on system preference
   editorWidth: 'medium',
+  typewriterMode: false,
+  focusMode: false,
 };
 
 const STORAGE_KEY = 'notearea-settings';

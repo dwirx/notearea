@@ -19,6 +19,8 @@ interface LiveEditorProps {
   editorStyles?: React.CSSProperties;
   editorWidthClass?: string;
   searchHighlights?: SearchHighlight[];
+  typewriterMode?: boolean;
+  focusMode?: boolean;
 }
 
 export interface LiveEditorRef {
@@ -322,7 +324,7 @@ interface LinkTooltip {
   y: number;
 }
 
-const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur, editorStyles, editorWidthClass = "max-w-3xl", searchHighlights = [] }, ref) => {
+const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur, editorStyles, editorWidthClass = "max-w-3xl", searchHighlights = [], typewriterMode = false, focusMode = false }, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -330,6 +332,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
   const [cursorPosition, setCursorPosition] = useState(0);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
 
   // Slash command detection
   const { isActive: isSlashActive } = useSlashCommand(value, cursorPosition);
@@ -470,7 +473,47 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
     setLinkTooltip(null);
+
+    // Update current line index for focus mode
+    const text = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const lineIdx = textBeforeCursor.split('\n').length - 1;
+    setCurrentLineIndex(lineIdx);
   };
+
+  // Typewriter mode: keep current line centered
+  useEffect(() => {
+    if (!typewriterMode) return;
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleTypewriterScroll = () => {
+      const text = value;
+      const cursorPos = textarea.selectionStart;
+      const textBeforeCursor = text.substring(0, cursorPos);
+      const currentLine = textBeforeCursor.split('\n').length;
+
+      // Calculate approximate scroll position to center the current line
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 28;
+      const viewportHeight = textarea.clientHeight;
+      const targetScrollTop = (currentLine * lineHeight) - (viewportHeight / 2);
+
+      textarea.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: 'smooth'
+      });
+    };
+
+    textarea.addEventListener('input', handleTypewriterScroll);
+    textarea.addEventListener('keyup', handleTypewriterScroll);
+
+    return () => {
+      textarea.removeEventListener('input', handleTypewriterScroll);
+      textarea.removeEventListener('keyup', handleTypewriterScroll);
+    };
+  }, [typewriterMode, value]);
 
   const updateValueAndSelection = useCallback((
     textarea: HTMLTextAreaElement,
@@ -859,7 +902,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="w-full min-h-screen min-h-[100dvh] safe-top bg-editor-bg flex flex-col"
     >
-      <div ref={containerRef} className={`live-editor-container relative flex-1 w-full mx-auto ${editorWidthClass}`}>
+      <div ref={containerRef} className={`live-editor-container relative flex-1 w-full mx-auto ${editorWidthClass} ${focusMode ? 'focus-mode-active' : ''}`} data-current-line={currentLineIndex}>
         {/* Highlight overlay */}
         <div
           ref={highlightRef}
