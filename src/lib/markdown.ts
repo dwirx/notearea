@@ -1,10 +1,11 @@
 import hljs from 'highlight.js';
 import katex from 'katex';
 
-// Store for mermaid diagrams and math expressions
+// Store for mermaid diagrams, math expressions, and infographics
 let mermaidDiagrams: string[] = [];
 let mathBlocks: string[] = [];
 let mathInlines: string[] = [];
+let infographicBlocks: string[] = [];
 
 // Get stored mermaid diagrams
 export function getMermaidDiagrams(): string[] {
@@ -19,6 +20,11 @@ export function getMathBlocks(): string[] {
 // Get stored inline math
 export function getMathInlines(): string[] {
   return mathInlines;
+}
+
+// Get stored infographic blocks
+export function getInfographicBlocks(): string[] {
+  return infographicBlocks;
 }
 
 // Render LaTeX math to HTML using KaTeX
@@ -42,6 +48,7 @@ export function parseMarkdown(text: string): string {
   mermaidDiagrams = [];
   mathBlocks = [];
   mathInlines = [];
+  infographicBlocks = [];
 
   let html = text;
 
@@ -58,7 +65,94 @@ export function parseMarkdown(text: string): string {
   const codePlaceholders: string[] = [];
   const mathBlockPlaceholders: string[] = [];
 
-  // Extract Mermaid blocks FIRST (before any other processing)
+  // Extract Infographic blocks FIRST and render directly as HTML
+  html = html.replace(/```infographic\s*[\r\n]+([\s\S]*?)```/g, (_, code) => {
+    const trimmedCode = code.trim();
+    if (!trimmedCode) return '';
+    infographicBlocks.push(trimmedCode);
+
+    // Parse the infographic data inline
+    const lines = trimmedCode.split('\n');
+    const firstLine = lines[0].trim();
+    if (!firstLine.startsWith('infographic')) {
+      return '<div class="infographic-error">Format infographic tidak valid</div>';
+    }
+
+    let title = '';
+    interface InfographicItem { label: string; desc: string; }
+    const items: InfographicItem[] = [];
+    let currentItem: Partial<InfographicItem> | null = null;
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed === 'data' || trimmed === 'items') continue;
+
+      if (trimmed.startsWith('title ')) {
+        title = trimmed.replace('title ', '').trim();
+        continue;
+      }
+      if (trimmed.startsWith('- label ')) {
+        if (currentItem && currentItem.label) {
+          items.push({ label: currentItem.label, desc: currentItem.desc || '' });
+        }
+        currentItem = { label: trimmed.replace('- label ', '').trim() };
+        continue;
+      }
+      if (trimmed.startsWith('desc ')) {
+        if (currentItem) {
+          currentItem.desc = trimmed.replace('desc ', '').trim();
+        }
+        continue;
+      }
+    }
+    if (currentItem && currentItem.label) {
+      items.push({ label: currentItem.label, desc: currentItem.desc || '' });
+    }
+
+    // Color palette for timeline dots
+    const timelineColors = [
+      'hsl(200, 90%, 60%)', 'hsl(145, 70%, 50%)', 'hsl(280, 70%, 65%)',
+      'hsl(340, 80%, 60%)', 'hsl(35, 90%, 55%)', 'hsl(180, 70%, 50%)',
+    ];
+
+    // Build the timeline HTML directly
+    let timelineHtml = '<div class="infographic-container infographic-rendered"><div class="infographic-timeline">';
+
+    if (title) {
+      timelineHtml += `<h3 class="infographic-title">${title}</h3>`;
+    }
+
+    timelineHtml += '<div class="timeline-container">';
+
+    items.forEach((item, index) => {
+      const color = timelineColors[index % timelineColors.length];
+      const nextColor = timelineColors[(index + 1) % timelineColors.length];
+      const isLast = index === items.length - 1;
+
+      timelineHtml += `
+        <div class="timeline-item">
+          <div class="timeline-step">
+            <span class="step-label">STEP ${index + 1}</span>
+          </div>
+          <div class="timeline-dot-container">
+            <div class="timeline-dot" style="background-color: ${color}"></div>
+            ${!isLast ? `<div class="timeline-line" style="background: linear-gradient(to bottom, ${color}, ${nextColor})"></div>` : ''}
+          </div>
+          <div class="timeline-content">
+            <h4 class="timeline-label">${item.label}</h4>
+            ${item.desc ? `<p class="timeline-desc">${item.desc}</p>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    timelineHtml += '</div></div></div>';
+
+    return timelineHtml;
+  });
+
+  // Extract Mermaid blocks
   // Handle both LF and CRLF line endings
   html = html.replace(/```mermaid\s*[\r\n]+([\s\S]*?)```/g, (_, code) => {
     const trimmedCode = code.trim();

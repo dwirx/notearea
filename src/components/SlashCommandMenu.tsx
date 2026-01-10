@@ -16,6 +16,7 @@ import {
   Terminal,
   GitBranch,
   Sigma,
+  LayoutTemplate,
 } from 'lucide-react';
 
 interface SlashCommand {
@@ -155,6 +156,14 @@ const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Rumus inline',
     icon: <Sigma className="h-4 w-4" />,
     template: '$x^2 + y^2 = z^2$',
+  },
+  {
+    id: 'infographic',
+    command: '/infographic',
+    label: 'Infographic',
+    description: 'Timeline infographic',
+    icon: <LayoutTemplate className="h-4 w-4" />,
+    template: '```infographic\ninfographic sequence-timeline-simple\ndata\n  title Judul Timeline\n  items\n    - label Step 1\n      desc Deskripsi langkah pertama\n    - label Step 2\n      desc Deskripsi langkah kedua\n    - label Step 3\n      desc Deskripsi langkah ketiga\n```',
   },
 ];
 
