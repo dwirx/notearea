@@ -3,6 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
 import SlashCommandMenu, { useSlashCommand } from './SlashCommandMenu';
 
+// Search highlight interface
+export interface SearchHighlight {
+  start: number;
+  end: number;
+  isCurrent: boolean;
+}
+
 interface LiveEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -11,6 +18,7 @@ interface LiveEditorProps {
   onBlur?: () => void;
   editorStyles?: React.CSSProperties;
   editorWidthClass?: string;
+  searchHighlights?: SearchHighlight[];
 }
 
 export interface LiveEditorRef {
@@ -180,6 +188,89 @@ const parseInline = (text: string): React.ReactNode[] => {
   return elements;
 };
 
+// Process content with search highlights
+const processContentWithHighlights = (
+  content: string,
+  searchHighlights: SearchHighlight[]
+): React.ReactNode[] => {
+  if (searchHighlights.length === 0) {
+    return processContent(content);
+  }
+
+  // Split content into segments based on search highlights
+  const segments: { text: string; isHighlight: boolean; isCurrent: boolean }[] = [];
+  let lastEnd = 0;
+
+  // Sort highlights by start position
+  const sortedHighlights = [...searchHighlights].sort((a, b) => a.start - b.start);
+
+  sortedHighlights.forEach((highlight) => {
+    // Add non-highlighted text before this highlight
+    if (highlight.start > lastEnd) {
+      segments.push({
+        text: content.slice(lastEnd, highlight.start),
+        isHighlight: false,
+        isCurrent: false,
+      });
+    }
+
+    // Add highlighted text
+    segments.push({
+      text: content.slice(highlight.start, highlight.end),
+      isHighlight: true,
+      isCurrent: highlight.isCurrent,
+    });
+
+    lastEnd = highlight.end;
+  });
+
+  // Add remaining text
+  if (lastEnd < content.length) {
+    segments.push({
+      text: content.slice(lastEnd),
+      isHighlight: false,
+      isCurrent: false,
+    });
+  }
+
+  // Render segments
+  const result: React.ReactNode[] = [];
+  segments.forEach((segment, segmentIndex) => {
+    if (segment.isHighlight) {
+      // Wrap highlight text in a span with highlight class
+      const highlightClass = segment.isCurrent
+        ? 'search-highlight search-highlight-current'
+        : 'search-highlight';
+      result.push(
+        <span key={`hl-${segmentIndex}`} className={highlightClass}>
+          {segment.text}
+        </span>
+      );
+    } else {
+      // Process non-highlighted text normally
+      const lines = segment.text.split('\n');
+      let inCodeBlock = false;
+
+      lines.forEach((line, lineIndex) => {
+        if (line.startsWith('```')) {
+          const wasInCodeBlock = inCodeBlock;
+          inCodeBlock = !inCodeBlock;
+          result.push(renderLine(line, segmentIndex * 1000 + lineIndex, wasInCodeBlock));
+        } else {
+          result.push(renderLine(line, segmentIndex * 1000 + lineIndex, inCodeBlock));
+        }
+
+        // Add newline except for last line of this segment
+        if (lineIndex < lines.length - 1) {
+          result.push('\n');
+        }
+      });
+    }
+  });
+
+  return result;
+};
+
 // Process all lines
 const processContent = (content: string): React.ReactNode[] => {
   const lines = content.split('\n');
@@ -231,7 +322,7 @@ interface LinkTooltip {
   y: number;
 }
 
-const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur, editorStyles, editorWidthClass = "max-w-3xl" }, ref) => {
+const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange, placeholder = "Mulai menulis...", onFocus, onBlur, editorStyles, editorWidthClass = "max-w-3xl", searchHighlights = [] }, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -779,7 +870,7 @@ const LiveEditor = forwardRef<LiveEditorRef, LiveEditorProps>(({ value, onChange
             padding: '2rem 1rem 6rem 1rem',
           }}
         >
-          {value ? processContent(value) : <span className="md-placeholder">{placeholder}</span>}
+          {value ? processContentWithHighlights(value, searchHighlights) : <span className="md-placeholder">{placeholder}</span>}
         </div>
 
         {/* Textarea - positioned absolutely over the highlight */}

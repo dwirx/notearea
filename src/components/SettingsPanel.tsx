@@ -6,7 +6,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -237,20 +239,45 @@ const SettingsPanel = ({
                       <SelectTrigger className="w-full h-10 sm:h-11">
                         <SelectValue placeholder="Pilih font" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {FONT_FAMILIES.map((font) => (
-                          <SelectItem key={font.value} value={font.value}>
-                            <span style={{ fontFamily: font.value }}>{font.label}</span>
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="max-h-[300px]">
+                        {/* Serif fonts - Best for writers */}
+                        <SelectGroup>
+                          <SelectLabel className="text-xs text-primary font-semibold">Serif (Untuk Menulis)</SelectLabel>
+                          {FONT_FAMILIES.filter(f => f.category === 'serif').map((font) => (
+                            <SelectItem key={font.value} value={font.value}>
+                              <span style={{ fontFamily: `"${font.value}", serif` }}>{font.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+
+                        {/* Sans-serif fonts */}
+                        <SelectGroup>
+                          <SelectLabel className="text-xs text-primary font-semibold">Sans-Serif (Modern)</SelectLabel>
+                          {FONT_FAMILIES.filter(f => f.category === 'sans').map((font) => (
+                            <SelectItem key={font.value} value={font.value}>
+                              <span style={{ fontFamily: `"${font.value}", sans-serif` }}>{font.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+
+                        {/* Monospace fonts */}
+                        <SelectGroup>
+                          <SelectLabel className="text-xs text-primary font-semibold">Typewriter/Mono</SelectLabel>
+                          {FONT_FAMILIES.filter(f => f.category === 'mono').map((font) => (
+                            <SelectItem key={font.value} value={font.value}>
+                              <span style={{ fontFamily: `"${font.value}", monospace` }}>{font.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                     {/* Font Preview */}
                     <div
-                      className="p-3 rounded-lg bg-background border border-border/50 text-sm"
-                      style={{ fontFamily: `"${settings.fontFamily}", system-ui, sans-serif` }}
+                      className="p-3 rounded-lg bg-background border border-border/50 text-sm leading-relaxed"
+                      style={{ fontFamily: `"${settings.fontFamily}", Georgia, serif` }}
                     >
-                      The quick brown fox jumps over the lazy dog.
+                      <p>The quick brown fox jumps over the lazy dog.</p>
+                      <p className="text-muted-foreground mt-1">1234567890 — "Quotes" & 'Apostrophes'</p>
                     </div>
                   </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SplitView, { ViewMode } from '@/components/SplitView';
 import FloatingMenu from '@/components/FloatingMenu';
@@ -18,6 +18,8 @@ import { countStats } from '@/lib/compression';
 import { toast } from 'sonner';
 import { compressText, decompressText } from '@/lib/compression';
 import { parseMarkdown } from '@/lib/markdown';
+import { SearchMatch } from '@/hooks/useSearch';
+import { SearchHighlight } from '@/components/LiveEditor';
 
 const AUTO_SAVE_DELAY = 1500; // 1.5 seconds
 
@@ -36,6 +38,19 @@ const Index = () => {
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const hasUnsavedChanges = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Search state for highlighting
+  const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+
+  // Convert search matches to search highlights for LiveEditor
+  const searchHighlights = useMemo<SearchHighlight[]>(() => {
+    return searchMatches.map((match, index) => ({
+      start: match.start,
+      end: match.end,
+      isCurrent: index === currentSearchIndex,
+    }));
+  }, [searchMatches, currentSearchIndex]);
 
   const {
     documents,
@@ -277,6 +292,12 @@ const Index = () => {
     textarea.scrollTop = scrollTop;
   }, [content]);
 
+  // Handle search state changes for highlighting
+  const handleSearchStateChange = useCallback((matches: SearchMatch[], currentIndex: number) => {
+    setSearchMatches(matches);
+    setCurrentSearchIndex(currentIndex);
+  }, []);
+
   // Download handlers
   const handleDownloadHtml = useCallback(() => {
     const html = parseMarkdown(content);
@@ -436,6 +457,7 @@ Ketik / untuk opsi insert cepat."
           onEditorBlur={handleEditorBlur}
           editorRef={textareaRef}
           settings={settings}
+          searchHighlights={searchHighlights}
         />
       </main>
 
@@ -454,6 +476,7 @@ Ketik / untuk opsi insert cepat."
         content={content}
         onContentChange={handleContentChange}
         onNavigateToPosition={handleNavigateToPosition}
+        onSearchStateChange={handleSearchStateChange}
       />
 
       {/* Settings Panel */}

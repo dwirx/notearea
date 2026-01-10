@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import LiveEditor, { LiveEditorRef } from './LiveEditor';
+import LiveEditor, { LiveEditorRef, SearchHighlight } from './LiveEditor';
 import MarkdownPreview from './MarkdownPreview';
 import { Settings, getEditorStyles, getEditorWidthClass } from '@/hooks/useSettings';
 
@@ -15,6 +15,7 @@ interface SplitViewProps {
   onEditorBlur?: () => void;
   editorRef?: React.MutableRefObject<HTMLTextAreaElement | null>;
   settings?: Settings;
+  searchHighlights?: SearchHighlight[];
 }
 
 const SplitView = ({
@@ -26,6 +27,7 @@ const SplitView = ({
   onEditorBlur,
   editorRef,
   settings,
+  searchHighlights = [],
 }: SplitViewProps) => {
   const liveEditorRef = useRef<LiveEditorRef>(null);
 
@@ -67,6 +69,7 @@ const SplitView = ({
         onBlur={onEditorBlur}
         editorStyles={editorStyles}
         editorWidthClass={editorWidthClass}
+        searchHighlights={searchHighlights}
       />
     );
   }
@@ -91,6 +94,7 @@ const SplitView = ({
             onBlur={onEditorBlur}
             editorStyles={editorStyles}
             editorWidthClass="max-w-full"
+            searchHighlights={searchHighlights}
           />
         </div>
       </div>

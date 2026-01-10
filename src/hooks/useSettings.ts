@@ -124,22 +124,41 @@ export const WORD_COUNT_PRESETS = [
 ];
 
 // Font family options with proper CSS font-family values
+// Organized by category for better UX
 export const FONT_FAMILIES = [
-  { label: 'Inter', value: 'Inter', preview: 'font-sans' },
-  { label: 'System UI', value: 'system-ui', preview: 'font-sans' },
-  { label: 'Georgia', value: 'Georgia', preview: 'font-serif' },
-  { label: 'Lora', value: 'Lora', preview: 'font-lora' },
-  { label: 'Merriweather', value: 'Merriweather', preview: 'font-serif' },
-  { label: 'Courier New (Typewriter)', value: 'Courier New', preview: 'font-mono' },
-  { label: 'Special Elite (Typewriter)', value: 'Special Elite', preview: 'font-mono' },
-  { label: 'VT323 (Retro Typewriter)', value: 'VT323', preview: 'font-mono' },
-  { label: 'IBM Plex Mono', value: 'IBM Plex Mono', preview: 'font-mono' },
-  { label: 'Source Code Pro', value: 'Source Code Pro', preview: 'font-mono' },
-  { label: 'Inconsolata', value: 'Inconsolata', preview: 'font-mono' },
-  { label: 'Courier Prime', value: 'Courier Prime', preview: 'font-mono' },
-  { label: 'Roboto Mono', value: 'Roboto Mono', preview: 'font-mono' },
-  { label: 'JetBrains Mono', value: 'JetBrains Mono', preview: 'font-mono' },
-  { label: 'Fira Code', value: 'Fira Code', preview: 'font-mono' },
+  // === ELEGANT SERIF (Best for long-form writing) ===
+  { label: 'Lora (Elegant)', value: 'Lora', preview: 'font-serif', category: 'serif' },
+  { label: 'Merriweather (Classic)', value: 'Merriweather', preview: 'font-serif', category: 'serif' },
+  { label: 'Crimson Pro (Book Style)', value: 'Crimson Pro', preview: 'font-serif', category: 'serif' },
+  { label: 'Literata (Reading)', value: 'Literata', preview: 'font-serif', category: 'serif' },
+  { label: 'Source Serif Pro', value: 'Source Serif 4', preview: 'font-serif', category: 'serif' },
+  { label: 'Spectral (Elegant)', value: 'Spectral', preview: 'font-serif', category: 'serif' },
+  { label: 'EB Garamond (Classical)', value: 'EB Garamond', preview: 'font-serif', category: 'serif' },
+  { label: 'Libre Baskerville', value: 'Libre Baskerville', preview: 'font-serif', category: 'serif' },
+  { label: 'Playfair Display', value: 'Playfair Display', preview: 'font-serif', category: 'serif' },
+  { label: 'Georgia (System)', value: 'Georgia', preview: 'font-serif', category: 'serif' },
+
+  // === CLEAN SANS-SERIF (Modern & Minimal) ===
+  { label: 'Inter (Modern)', value: 'Inter', preview: 'font-sans', category: 'sans' },
+  { label: 'Open Sans (Friendly)', value: 'Open Sans', preview: 'font-sans', category: 'sans' },
+  { label: 'Nunito (Soft)', value: 'Nunito', preview: 'font-sans', category: 'sans' },
+  { label: 'Poppins (Clean)', value: 'Poppins', preview: 'font-sans', category: 'sans' },
+  { label: 'Work Sans (Professional)', value: 'Work Sans', preview: 'font-sans', category: 'sans' },
+  { label: 'System UI', value: 'system-ui', preview: 'font-sans', category: 'sans' },
+
+  // === TYPEWRITER & MONOSPACE (For that classic feel) ===
+  { label: 'Courier Prime (Screenplay)', value: 'Courier Prime', preview: 'font-mono', category: 'mono' },
+  { label: 'Special Elite (Vintage)', value: 'Special Elite', preview: 'font-mono', category: 'mono' },
+  { label: 'iA Writer Mono', value: 'iA Writer Mono S', preview: 'font-mono', category: 'mono' },
+  { label: 'iA Writer Duo', value: 'iA Writer Duo S', preview: 'font-mono', category: 'mono' },
+  { label: 'JetBrains Mono', value: 'JetBrains Mono', preview: 'font-mono', category: 'mono' },
+  { label: 'Fira Code', value: 'Fira Code', preview: 'font-mono', category: 'mono' },
+  { label: 'IBM Plex Mono', value: 'IBM Plex Mono', preview: 'font-mono', category: 'mono' },
+  { label: 'Source Code Pro', value: 'Source Code Pro', preview: 'font-mono', category: 'mono' },
+  { label: 'Inconsolata', value: 'Inconsolata', preview: 'font-mono', category: 'mono' },
+  { label: 'Roboto Mono', value: 'Roboto Mono', preview: 'font-mono', category: 'mono' },
+  { label: 'VT323 (Retro)', value: 'VT323', preview: 'font-mono', category: 'mono' },
+  { label: 'Courier New', value: 'Courier New', preview: 'font-mono', category: 'mono' },
 ];
 
 // Line height options
@@ -161,19 +180,17 @@ export const EDITOR_WIDTHS = [
 
 // Helper to get CSS styles from settings
 export const getEditorStyles = (settings: Settings): React.CSSProperties => {
-  // Determine fallback font based on font family type
-  const isMonospace = [
-    'Courier New', 'Special Elite', 'VT323', 'IBM Plex Mono', 
-    'Source Code Pro', 'Inconsolata', 'Courier Prime', 
-    'Roboto Mono', 'JetBrains Mono', 'Fira Code'
-  ].includes(settings.fontFamily);
-  
-  const fallback = isMonospace 
-    ? 'monospace' 
-    : settings.fontFamily === 'Georgia' || settings.fontFamily === 'Lora' || settings.fontFamily === 'Merriweather'
-    ? 'serif'
+  // Find font category from FONT_FAMILIES
+  const fontConfig = FONT_FAMILIES.find(f => f.value === settings.fontFamily);
+  const category = fontConfig?.category || 'sans';
+
+  // Determine fallback font based on category
+  const fallback = category === 'mono'
+    ? 'monospace'
+    : category === 'serif'
+    ? 'Georgia, serif'
     : 'system-ui, sans-serif';
-  
+
   return {
     fontSize: `${settings.fontSize}px`,
     fontFamily: `"${settings.fontFamily}", ${fallback}`,

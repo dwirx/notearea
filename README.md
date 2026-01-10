@@ -111,7 +111,19 @@
 - 🌞 **Light Mode** - Tampilan terang untuk siang hari
 - 🌙 **Dark Mode** - Tampilan gelap untuk malam hari
 - 💻 **System Auto** - Mengikuti preferensi sistem OS
-- 🎨 **Custom Themes** - Mudah dikustomisasi via Tailwind
+- 🎨 **19 Color Themes** - Default, Nord, Solarized, Dracula, Monokai, Tokyo Night, dll.
+- ✍️ **28 Writer Fonts** - Serif, Sans-serif, dan Monospace/Typewriter fonts
+- 📏 **Editor Width** - Narrow, Medium, Wide, Full
+- 🔤 **Font Size & Line Height** - Kustomisasi sesuai preferensi
+
+### 🔍 Cari & Ganti (Search & Replace)
+
+- 🔎 **Real-time Search** - Pencarian dengan highlight otomatis
+- 🎯 **Current Match Highlight** - Hasil pencarian saat ini ditandai berbeda
+- 🔄 **Replace One/All** - Ganti satu per satu atau sekaligus
+- 📝 **Case Sensitive** - Toggle untuk pencarian case-sensitive
+- 📖 **Whole Word** - Toggle untuk pencarian kata utuh
+- ⌨️ **Keyboard Navigation** - Enter/Shift+Enter untuk navigasi cepat
 
 ---
 
@@ -276,10 +288,24 @@ function greet(name) {
 
 | Shortcut | Action | Context |
 |----------|--------|---------|
-| `Esc` | Close modal/lightbox | Global |
-| `+` / `=` | Zoom in | Image lightbox |
-| `-` | Zoom out | Image lightbox |
-| `R` | Rotate image | Image lightbox |
+| `Ctrl/Cmd + B` | Bold | Editor |
+| `Ctrl/Cmd + I` | Italic | Editor |
+| `Ctrl/Cmd + K` | Insert Link | Editor |
+| `Ctrl/Cmd + `` ` `` | Inline Code | Editor |
+| `Ctrl/Cmd + Shift + `` ` `` | Code Block | Editor |
+| `Ctrl/Cmd + Shift + X` | Strikethrough | Editor |
+| `Ctrl/Cmd + Shift + 8` | Bullet List | Editor |
+| `Ctrl/Cmd + Shift + 7` | Ordered List | Editor |
+| `Ctrl/Cmd + Alt + 1-6` | Heading 1-6 | Editor |
+| `Ctrl/Cmd + Alt + T` | Task List | Editor |
+| `Ctrl/Cmd + Shift + .` | Blockquote | Editor |
+| `Ctrl/Cmd + F` | Search & Replace | Global |
+| `Enter` | Next Match | Search Panel |
+| `Shift + Enter` | Previous Match | Search Panel |
+| `Esc` | Close Panel/Modal | Global |
+| `+` / `=` | Zoom In | Image Lightbox |
+| `-` | Zoom Out | Image Lightbox |
+| `R` | Rotate Image | Image Lightbox |
 
 ### 3. Sharing Dokumen
 
@@ -563,6 +589,10 @@ Project ini dimungkinkan berkat teknologi dan library open-source yang luar bias
 - [x] Image lightbox dengan zoom/rotate
 - [x] Multi-document management
 - [x] QR code sharing
+- [x] Search & Replace dengan highlighting
+- [x] 19 color themes (light & dark)
+- [x] 28 writer fonts (serif, sans, mono)
+- [x] Syntax highlighting sesuai tema
 - [ ] Vim mode untuk editor
 - [ ] Custom keybindings
 - [ ] Template gallery

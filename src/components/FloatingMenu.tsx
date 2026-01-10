@@ -85,6 +85,16 @@ const shortcutSections = [
     ],
   },
   {
+    title: 'Cari & Ganti',
+    subtitle: 'Pencarian teks',
+    items: [
+      { label: 'Buka Cari & Ganti', keys: ['Ctrl/Cmd', 'F'] },
+      { label: 'Hasil Berikutnya', keys: ['Enter'] },
+      { label: 'Hasil Sebelumnya', keys: ['Shift', 'Enter'] },
+      { label: 'Tutup Panel', keys: ['Esc'] },
+    ],
+  },
+  {
     title: 'Editor & Link',
     subtitle: 'Navigasi cepat',
     items: [

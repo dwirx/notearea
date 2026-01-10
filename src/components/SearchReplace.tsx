@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSearch } from '@/hooks/useSearch';
+import { useSearch, SearchMatch } from '@/hooks/useSearch';
 import { toast } from 'sonner';
 
 interface SearchReplaceProps {
@@ -20,6 +20,7 @@ interface SearchReplaceProps {
   content: string;
   onContentChange: (content: string) => void;
   onNavigateToPosition: (position: number) => void;
+  onSearchStateChange?: (matches: SearchMatch[], currentIndex: number) => void;
 }
 
 const SearchReplace = ({
@@ -28,6 +29,7 @@ const SearchReplace = ({
   content,
   onContentChange,
   onNavigateToPosition,
+  onSearchStateChange,
 }: SearchReplaceProps) => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,6 +67,17 @@ const SearchReplace = ({
       onNavigateToPosition(currentMatch.start);
     }
   }, [currentMatch, isOpen, onNavigateToPosition]);
+
+  // Notify parent of search state changes for highlighting
+  useEffect(() => {
+    if (onSearchStateChange) {
+      if (isOpen && matches.length > 0) {
+        onSearchStateChange(matches, currentMatchIndex);
+      } else {
+        onSearchStateChange([], 0);
+      }
+    }
+  }, [matches, currentMatchIndex, isOpen, onSearchStateChange]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
