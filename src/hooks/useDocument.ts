@@ -5,8 +5,9 @@ import {
   extractTitle,
 } from '@/lib/compression';
 import { parseMarkdown } from '@/lib/markdown';
-import { saveToIndexedDB, loadFromIndexedDB, clearIndexedDB } from '@/lib/storage';
+import { saveToIndexedDB, loadFromIndexedDB, clearIndexedDB, saveLegacyContentToIDB, loadLegacyContentFromIDB } from '@/lib/storage';
 
+// localStorage key for migration only
 const STORAGE_KEY = 'textarea-content';
 const SAVE_DELAY = 500;
 
@@ -14,15 +15,32 @@ export function useDocument() {
   const [content, setContent] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load content on mount
+  // Load content on mount with localStorage migration
   useEffect(() => {
     const loadContent = async () => {
       const hashContent = getHashContent();
-      const localContent = localStorage.getItem(STORAGE_KEY) || '';
-      const indexedContent = await loadFromIndexedDB();
 
-      // Priority: URL hash > localStorage > IndexedDB
-      const initialContent = hashContent || localContent || indexedContent || '';
+      // Try to load from IndexedDB first
+      let storedContent = await loadLegacyContentFromIDB();
+
+      // Migrate from localStorage if IndexedDB is empty
+      if (!storedContent) {
+        const localContent = localStorage.getItem(STORAGE_KEY);
+        if (localContent) {
+          storedContent = localContent;
+          // Save to IndexedDB and remove from localStorage
+          await saveLegacyContentToIDB(localContent);
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+
+      // Also check old IndexedDB format
+      if (!storedContent) {
+        storedContent = await loadFromIndexedDB();
+      }
+
+      // Priority: URL hash > IndexedDB
+      const initialContent = hashContent || storedContent || '';
       setContent(initialContent);
       setIsLoaded(true);
 
@@ -40,8 +58,8 @@ export function useDocument() {
     if (!isLoaded) return;
 
     const timeoutId = setTimeout(() => {
-      // Save to all storage mechanisms
-      localStorage.setItem(STORAGE_KEY, content);
+      // Save to IndexedDB and URL hash
+      saveLegacyContentToIDB(content);
       saveToIndexedDB(content);
       setHashContent(content);
 
@@ -68,7 +86,8 @@ export function useDocument() {
 
   const handleNew = useCallback(() => {
     setContent('');
-    localStorage.removeItem(STORAGE_KEY);
+    // Clear from IndexedDB
+    saveLegacyContentToIDB('');
     clearIndexedDB();
     window.history.replaceState(null, '', window.location.pathname);
     document.title = 'Catatan';

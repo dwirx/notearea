@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 type LineTransform = {
   line: string;
@@ -28,16 +28,41 @@ interface UseEditorCommandsProps {
 }
 
 export const useEditorCommands = ({ value, onChange, textareaRef }: UseEditorCommandsProps) => {
+  // Refs for managing selection timing
+  const isSettingSelectionRef = useRef(false);
+  const selectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const updateValueAndSelection = useCallback((
     textarea: HTMLTextAreaElement,
     nextValue: string,
     selectionStart: number,
     selectionEnd: number
   ) => {
+    // Set flag to prevent selectionchange from interfering
+    isSettingSelectionRef.current = true;
+
+    // Clear any pending selection timeout
+    if (selectionTimeoutRef.current) {
+      clearTimeout(selectionTimeoutRef.current);
+    }
+
     onChange(nextValue);
+
+    // Use double requestAnimationFrame to ensure DOM is fully updated
     requestAnimationFrame(() => {
-      textarea.selectionStart = selectionStart;
-      textarea.selectionEnd = selectionEnd;
+      requestAnimationFrame(() => {
+        if (textarea && document.body.contains(textarea)) {
+          textarea.selectionStart = selectionStart;
+          textarea.selectionEnd = selectionEnd;
+
+          // Reset flag after a short delay
+          selectionTimeoutRef.current = setTimeout(() => {
+            isSettingSelectionRef.current = false;
+          }, 50);
+        } else {
+          isSettingSelectionRef.current = false;
+        }
+      });
     });
   }, [onChange]);
 

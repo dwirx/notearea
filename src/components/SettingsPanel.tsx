@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, Type, AlignLeft, Target, Moon, Sun, Monitor, RotateCcw, Maximize2, Palette, Check } from 'lucide-react';
+import { X, Settings, Type, AlignLeft, Target, Moon, Sun, Monitor, RotateCcw, Maximize2, Palette, Check, Edit3, Focus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -327,6 +327,60 @@ const SettingsPanel = ({
                         </Button>
                       ))}
                     </div>
+                  </div>
+                </div>
+
+                {/* Focus & Writing Section */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Focus className="h-3.5 w-3.5" />
+                    Mode Fokus
+                  </h3>
+
+                  {/* Typewriter Mode */}
+                  <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="h-4 w-4 text-primary" />
+                        <label className="text-sm font-medium text-foreground">
+                          Mode Typewriter
+                        </label>
+                      </div>
+                      <Button
+                        variant={settings.typewriterMode ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => onSettingChange('typewriterMode', !settings.typewriterMode)}
+                        className="h-7 px-3 text-xs"
+                      >
+                        {settings.typewriterMode ? 'Aktif' : 'Nonaktif'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Baris aktif selalu di tengah layar saat mengetik
+                    </p>
+                  </div>
+
+                  {/* Focus Mode */}
+                  <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Focus className="h-4 w-4 text-primary" />
+                        <label className="text-sm font-medium text-foreground">
+                          Mode Fokus
+                        </label>
+                      </div>
+                      <Button
+                        variant={settings.focusMode ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => onSettingChange('focusMode', !settings.focusMode)}
+                        className="h-7 px-3 text-xs"
+                      >
+                        {settings.focusMode ? 'Aktif' : 'Nonaktif'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Meredupkan teks di luar paragraf aktif
+                    </p>
                   </div>
                 </div>
 

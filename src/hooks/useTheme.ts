@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { applyTheme, getThemeById, getDefaultTheme, COLOR_THEMES, ColorTheme } from '@/lib/themes';
+import { saveThemeToIDB, loadThemeFromIDB } from '@/lib/storage';
 
+// localStorage keys for migration only
 const THEME_KEY = 'notearea-color-theme';
 const MODE_KEY = 'notearea-theme-mode';
 
@@ -11,27 +13,49 @@ export function useTheme() {
   const [currentTheme, setCurrentTheme] = useState<ColorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
 
-  // Initialize theme on mount
+  // Initialize theme on mount with localStorage migration
   useEffect(() => {
-    const storedThemeId = localStorage.getItem(THEME_KEY);
-    const storedMode = localStorage.getItem(MODE_KEY) as ThemeMode | null;
+    const initTheme = async () => {
+      let storedThemeId: string | null = null;
+      let storedMode: ThemeMode | null = null;
 
-    if (storedMode) {
-      setThemeMode(storedMode);
-    }
+      // Try to load from IndexedDB first
+      const idbTheme = await loadThemeFromIDB();
+      if (idbTheme) {
+        storedThemeId = idbTheme.themeId;
+        storedMode = idbTheme.mode as ThemeMode;
+      } else {
+        // Migrate from localStorage if IndexedDB is empty
+        storedThemeId = localStorage.getItem(THEME_KEY);
+        storedMode = localStorage.getItem(MODE_KEY) as ThemeMode | null;
 
-    let theme: ColorTheme;
+        if (storedThemeId || storedMode) {
+          // Save to IndexedDB and remove from localStorage
+          await saveThemeToIDB(storedThemeId || 'default-light', storedMode || 'system');
+          localStorage.removeItem(THEME_KEY);
+          localStorage.removeItem(MODE_KEY);
+        }
+      }
 
-    if (storedThemeId) {
-      const foundTheme = getThemeById(storedThemeId);
-      theme = foundTheme || getDefaultTheme();
-    } else {
-      theme = getDefaultTheme();
-    }
+      if (storedMode) {
+        setThemeMode(storedMode);
+      }
 
-    setCurrentTheme(theme);
-    setIsDark(theme.isDark);
-    applyTheme(theme);
+      let theme: ColorTheme;
+
+      if (storedThemeId) {
+        const foundTheme = getThemeById(storedThemeId);
+        theme = foundTheme || getDefaultTheme();
+      } else {
+        theme = getDefaultTheme();
+      }
+
+      setCurrentTheme(theme);
+      setIsDark(theme.isDark);
+      applyTheme(theme);
+    };
+
+    initTheme();
   }, []);
 
   // Listen for system theme changes
@@ -65,12 +89,13 @@ export function useTheme() {
     setCurrentTheme(theme);
     setIsDark(theme.isDark);
     applyTheme(theme);
-    localStorage.setItem(THEME_KEY, themeId);
 
     // Update mode based on theme
     const newMode = theme.isDark ? 'dark' : 'light';
     setThemeMode(newMode);
-    localStorage.setItem(MODE_KEY, newMode);
+
+    // Save to IndexedDB
+    saveThemeToIDB(themeId, newMode);
   }, []);
 
   // Toggle between light/dark (uses default themes)
@@ -83,15 +108,14 @@ export function useTheme() {
       setCurrentTheme(theme);
       setIsDark(newIsDark);
       applyTheme(theme);
-      localStorage.setItem(THEME_KEY, newThemeId);
-      localStorage.setItem(MODE_KEY, newIsDark ? 'dark' : 'light');
+      const newMode = newIsDark ? 'dark' : 'light';
+      saveThemeToIDB(newThemeId, newMode);
     }
   }, [isDark]);
 
   // Set theme mode (light/dark/system)
   const setMode = useCallback((mode: ThemeMode) => {
     setThemeMode(mode);
-    localStorage.setItem(MODE_KEY, mode);
 
     if (mode === 'system') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -101,7 +125,7 @@ export function useTheme() {
         setCurrentTheme(theme);
         setIsDark(theme.isDark);
         applyTheme(theme);
-        localStorage.setItem(THEME_KEY, defaultThemeId);
+        saveThemeToIDB(defaultThemeId, mode);
       }
     } else {
       // Find a theme matching the mode, prefer current theme family if possible
@@ -121,7 +145,7 @@ export function useTheme() {
         setCurrentTheme(theme);
         setIsDark(theme.isDark);
         applyTheme(theme);
-        localStorage.setItem(THEME_KEY, theme.id);
+        saveThemeToIDB(theme.id, mode);
       }
     }
   }, [currentTheme]);

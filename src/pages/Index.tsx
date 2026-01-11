@@ -10,6 +10,9 @@ import DocumentHeader from '@/components/DocumentHeader';
 import TableOfContents from '@/components/TableOfContents';
 import SearchReplace from '@/components/SearchReplace';
 import SettingsPanel from '@/components/SettingsPanel';
+import CommandPalette from '@/components/CommandPalette';
+import KeyboardShortcuts from '@/components/KeyboardShortcuts';
+import VersionHistory from '@/components/VersionHistory';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useTheme } from '@/hooks/useTheme';
 import { useEditorCommands } from '@/hooks/useEditorCommands';
@@ -32,12 +35,16 @@ const Index = () => {
   const [showTOC, setShowTOC] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const hasUnsavedChanges = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Search state for highlighting
   const [searchMatches, setSearchMatches] = useState<SearchMatch[]>([]);
@@ -54,6 +61,8 @@ const Index = () => {
 
   const {
     documents,
+    folders,
+    allTags,
     currentDocument,
     currentDocId,
     isLoaded,
@@ -61,6 +70,14 @@ const Index = () => {
     createDocument,
     updateDocument,
     deleteDocument,
+    togglePinDocument,
+    moveToFolder,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    restoreVersion,
+    deleteVersion,
+    clearAllVersions,
   } = useDocuments();
 
   const { isDark, toggleTheme, currentTheme, setTheme } = useTheme();
@@ -193,7 +210,7 @@ const Index = () => {
   }, [content, currentDocId, createDocument, updateDocument]);
 
   // Handle new document
-  const handleNewDocument = useCallback(() => {
+  const handleNewDocument = useCallback((folderId?: string | null) => {
     // Save current content first if there's unsaved changes
     if (hasUnsavedChanges.current && content.trim()) {
       performAutoSave();
@@ -205,8 +222,14 @@ const Index = () => {
     setLastSaved(null);
     hasUnsavedChanges.current = false;
     window.history.replaceState(null, '', window.location.pathname);
+
+    // If folderId is provided, we'll pass it when creating the document
+    if (folderId) {
+      createDocument('', folderId);
+    }
+
     toast.success('Dokumen baru dibuat');
-  }, [content, setCurrentDocId, performAutoSave]);
+  }, [content, setCurrentDocId, performAutoSave, createDocument]);
 
   // Handle select document
   const handleSelectDocument = useCallback((id: string) => {
@@ -263,18 +286,107 @@ const Index = () => {
     setTimeout(() => setIsEditorFocused(false), 150);
   }, []);
 
-  // Keyboard shortcut for search (Ctrl/Cmd + F)
+  // Keyboard shortcuts (Ctrl/Cmd + F, K, /, etc.)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Command Palette: Ctrl/Cmd + K
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+        return;
+      }
+
+      // Search: Ctrl/Cmd + F
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setShowSearch(true);
+        return;
+      }
+
+      // Shortcuts panel: Ctrl/Cmd + /
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
+
+      // Save: Ctrl/Cmd + S
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveDocument();
+        return;
+      }
+
+      // New document: Ctrl/Cmd + N
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleNewDocument();
+        return;
+      }
+
+      // Toggle theme: Ctrl/Cmd + Shift + D
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'd') {
+        e.preventDefault();
+        toggleTheme();
+        return;
+      }
+
+      // Toggle Zen mode: Ctrl/Cmd + Shift + Z
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        toggleZenMode();
+        return;
+      }
+
+      // Exit Zen mode with Escape
+      if (e.key === 'Escape' && isZenMode) {
+        e.preventDefault();
+        setIsZenMode(false);
+        return;
+      }
+
+      // Table of Contents: Ctrl/Cmd + Shift + T
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 't') {
+        e.preventDefault();
+        setShowTOC(prev => !prev);
+        return;
+      }
+
+      // View mode shortcuts: Ctrl/Cmd + 1, 2, 3
+      if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+        e.preventDefault();
+        setViewMode('editor');
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+        e.preventDefault();
+        setViewMode('preview');
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+        e.preventDefault();
+        setViewMode('split');
+        return;
+      }
+
+      // Settings: Ctrl/Cmd + ,
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        setShowSettings(true);
+        return;
+      }
+
+      // Open documents: Ctrl/Cmd + O
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        setShowSidebar(true);
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [handleSaveDocument, handleNewDocument, toggleTheme, toggleZenMode, isZenMode]);
 
   // Navigate to position in editor
   const handleNavigateToPosition = useCallback((position: number) => {
@@ -428,6 +540,63 @@ const Index = () => {
       transition={{ duration: 0.5 }}
       className={`min-h-screen min-h-[100dvh] bg-editor-bg ${isZenMode ? 'zen-mode' : ''}`}
     >
+      {/* Zen Mode Exit Indicator */}
+      {isZenMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="zen-toolbar"
+        >
+          {/* View mode toggle */}
+          <div className="zen-toolbar-group">
+            <button
+              onClick={() => setViewMode('editor')}
+              className={`zen-toolbar-btn ${viewMode === 'editor' ? 'active' : ''}`}
+              title="Mode Editor"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('preview')}
+              className={`zen-toolbar-btn ${viewMode === 'preview' ? 'active' : ''}`}
+              title="Mode Pratinjau"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('split')}
+              className={`zen-toolbar-btn hidden sm:flex ${viewMode === 'split' ? 'active' : ''}`}
+              title="Mode Split"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                <path d="M12 3v18"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Exit button */}
+          <button
+            onClick={() => setIsZenMode(false)}
+            className="zen-exit-btn"
+            aria-label="Keluar dari Mode Fokus"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+            <span>Keluar</span>
+            <kbd>Esc</kbd>
+          </button>
+        </motion.div>
+      )}
       {/* Document Header */}
       {!isZenMode && (
         <DocumentHeader
@@ -438,6 +607,7 @@ const Index = () => {
           onToggleTOC={() => setShowTOC(!showTOC)}
           onOpenSettings={() => setShowSettings(true)}
           onOpenSearch={() => setShowSearch(true)}
+          onOpenHistory={() => setShowVersionHistory(true)}
           showTOC={showTOC}
           isZenMode={isZenMode}
         />
@@ -458,6 +628,7 @@ Ketik / untuk opsi insert cepat."
           editorRef={textareaRef}
           settings={settings}
           searchHighlights={searchHighlights}
+          onViewModeChange={setViewMode}
         />
       </main>
 
@@ -543,10 +714,17 @@ Ketik / untuk opsi insert cepat."
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         documents={documents}
+        folders={folders}
+        allTags={allTags}
         currentDocId={currentDocId}
         onSelectDocument={handleSelectDocument}
         onNewDocument={handleNewDocument}
         onDeleteDocument={handleDeleteDocument}
+        onTogglePin={togglePinDocument}
+        onMoveToFolder={moveToFolder}
+        onCreateFolder={createFolder}
+        onUpdateFolder={updateFolder}
+        onDeleteFolder={deleteFolder}
       />
 
       {/* QR Modal */}
@@ -554,6 +732,95 @@ Ketik / untuk opsi insert cepat."
         isOpen={showQR}
         onClose={() => setShowQR(false)}
         url={typeof window !== 'undefined' ? window.location.href : ''}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNew={handleNewDocument}
+        onSave={handleSaveDocument}
+        onShare={handleShare}
+        onDownloadHtml={handleDownloadHtml}
+        onDownloadText={handleDownloadText}
+        onDownloadMarkdown={handleDownloadMarkdown}
+        onExportBackup={handleExportBackup}
+        onImportBackup={() => fileInputRef.current?.click()}
+        onShowQR={() => setShowQR(true)}
+        onViewModeChange={setViewMode}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        isZenMode={isZenMode}
+        onToggleZenMode={toggleZenMode}
+        onOpenDocuments={() => setShowSidebar(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenSearch={() => setShowSearch(true)}
+        onOpenTOC={() => setShowTOC(true)}
+        onOpenShortcuts={() => setShowShortcuts(true)}
+      />
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcuts
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
+
+      {/* Version History Panel */}
+      {currentDocId && currentDocument && (
+        <VersionHistory
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          versions={currentDocument.versions}
+          currentContent={content}
+          onRestoreVersion={(versionId) => {
+            const restoredContent = restoreVersion(currentDocId, versionId);
+            if (restoredContent !== null) {
+              // Update content state directly with the restored content
+              setContent(restoredContent);
+
+              // Update URL with restored content
+              const compressed = compressText(restoredContent);
+              window.history.replaceState(null, '', `#${compressed}`);
+
+              // Update last saved timestamp
+              setLastSaved(Date.now());
+              hasUnsavedChanges.current = false;
+
+              // Focus editor and reset cursor position after a short delay
+              setTimeout(() => {
+                const textarea = textareaRef.current;
+                if (textarea) {
+                  textarea.focus();
+                  // Set cursor to end of content
+                  textarea.selectionStart = textarea.selectionEnd = restoredContent.length;
+                }
+              }, 100);
+
+              toast.success('Versi berhasil dipulihkan');
+            }
+          }}
+          onDeleteVersion={(versionId) => {
+            deleteVersion(currentDocId, versionId);
+          }}
+          onClearAllVersions={() => {
+            clearAllVersions(currentDocId);
+          }}
+        />
+      )}
+
+      {/* Hidden file input for import backup */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleImportBackup(file);
+            e.target.value = '';
+          }
+        }}
+        className="hidden"
       />
     </motion.div>
   );
